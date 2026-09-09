@@ -9,7 +9,7 @@ on:
   pull_request:
   release:
     types: [published]
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   test:
