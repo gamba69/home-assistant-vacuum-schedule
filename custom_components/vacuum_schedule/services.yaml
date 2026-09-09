@@ -1,0 +1,210 @@
+emit_test_event: {}
+
+refresh_capabilities:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+
+additional_run:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+
+run_early:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+    ignore_busy_zones:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+smart_run:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+    ignore_busy_zones:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+# Backward-compatible aliases kept for existing automations.
+run_schedule_now:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+
+start_job_now:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+    ignore_busy_zones:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+skip_job:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+
+cancel_job:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+
+pause_job:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+
+resume_job:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+
+recheck_job:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    job_id:
+      required: true
+      selector:
+        text:
+
+set_schedule_enabled:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+    enabled:
+      required: true
+      selector:
+        boolean:
+
+set_schedule_paused:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    schedule_id:
+      required: true
+      selector:
+        text:
+    paused:
+      required: true
+      selector:
+        boolean:
+
+set_execution_gate:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    execution_gate:
+      required: true
+      selector:
+        select:
+          options:
+            - enabled
+            - disabled
+            - disabled_until
+    disabled_until:
+      required: false
+      selector:
+        datetime:
+
+rebuild_schedule:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: vacuum_schedule
+    restore_early_executed:
+      required: false
+      default: false
+      selector:
+        boolean:

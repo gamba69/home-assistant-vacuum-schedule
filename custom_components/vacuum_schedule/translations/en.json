@@ -1,0 +1,620 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This robot vacuum is already configured in Vacuum Schedule.",
+      "reconfigure_successful": "Vacuum Schedule was reconfigured successfully.",
+      "legacy_entry_not_found": "The legacy Vacuum Scheduler entry is no longer available."
+    },
+    "error": {
+      "invalid_vacuum_entity": "Select an existing robot vacuum entity."
+    },
+    "step": {
+      "reconfigure": {
+        "data": {
+          "vacuum_entity_id": "Robot vacuum"
+        },
+        "data_description": {
+          "vacuum_entity_id": "The primary Home Assistant vacuum entity for this robot."
+        },
+        "description": "Select the robot vacuum for this Vacuum Schedule entry. The next step configures related Home Assistant devices.",
+        "title": "Select the robot vacuum"
+      },
+      "reconfigure_resources": {
+        "data": {
+          "clean_water_status_entity_id": "Clean water / clean-water tank status (optional)",
+          "dirty_water_status_entity_id": "Dirty water / dirty-water tank status (optional)",
+          "related_device_ids": "Related devices (optional)",
+          "related_entities": "Additional individual entities (fallback, optional)"
+        },
+        "data_description": {
+          "clean_water_status_entity_id": "Select the dock entity that indicates whether clean water / the clean-water tank is ready. Usually a dock binary_sensor or sensor.",
+          "dirty_water_status_entity_id": "Select the dock entity that indicates whether the dirty-water tank is OK and does not require service. Usually a dock binary_sensor or sensor.",
+          "related_device_ids": "Select a separate dock/station or other devices related to this robot. Their entities are discovered automatically.",
+          "related_entities": "Use only for entities that are not part of the robot device or any selected related device."
+        },
+        "description": "Select related cleaning-system devices, such as a separately represented dock/station. Vacuum Schedule automatically discovers their enabled entities.\n\nFor future pre-flight checks, explicitly bind the clean-water and dirty-water tank status sources. If the selected dock exposes obvious `clean water` / `dirty water` entities, Vacuum Schedule will try to auto-detect them after submission.\n\nThe individual-entity field remains a fallback for unusual Home Assistant registry layouts.",
+        "title": "Related devices"
+      },
+      "reconfigure_review": {
+        "description": "Robot: **{vacuum}**\n\n**Devices used for discovery**\n\n- Primary robot device: {primary_device}\n- Related devices: {related_devices}\n- Related devices selected: **{related_device_count}**\n- Missing related device IDs: {missing_devices}\n\n**Detected capabilities**\n\n- Start: {start}\n- Stop: {stop}\n- Pause: {pause}\n- Return home: {return_home}\n- Fan mode/speed: {fan_mode}\n- Area/room cleaning through CLEAN_AREA: {room_cleaning}\n- Spot cleaning: {spot_cleaning}\n- Map: {map}\n- Locate: {locate}\n- Generic SEND_COMMAND: {send_command}\n- Robot state: {robot_state}\n- Zone cleaning: {zone_cleaning}\n- Mop/water mode: {mop_water_mode}\n- Zoned-cleaning repetitions: {repetitions}\n\nLegend: ✅ confirmed by read-only evidence, ➖ a standard support flag is absent, ❔ available evidence is insufficient.\n\n**Entities discovered across the primary robot and all selected related devices**\n\n- Battery: {battery}\n- Dock/station: {dock}\n- Water/tank: {water}\n- Clean-water status source: {clean_water_status}\n- Dirty-water status source: {dirty_water_status}\n- Mop/mopping: {mop}\n- Consumables: {consumables}\n- Other diagnostic entities: {diagnostics}\n- Manually added fallback entities: {manual_entities}\n\nTotal discovered related entities: **{related_count}**.\n\nConfirm to save and reload. No physical command will be sent.",
+        "title": "Review detected devices, entities and capabilities"
+      },
+      "resources": {
+        "data": {
+          "clean_water_status_entity_id": "Clean water / clean-water tank status (optional)",
+          "dirty_water_status_entity_id": "Dirty water / dirty-water tank status (optional)",
+          "related_device_ids": "Related devices (optional)",
+          "related_entities": "Additional individual entities (fallback, optional)"
+        },
+        "data_description": {
+          "clean_water_status_entity_id": "Select the dock entity that indicates whether clean water / the clean-water tank is ready. Usually a dock binary_sensor or sensor.",
+          "dirty_water_status_entity_id": "Select the dock entity that indicates whether the dirty-water tank is OK and does not require service. Usually a dock binary_sensor or sensor.",
+          "related_device_ids": "Select a separate dock/station or other Home Assistant devices that belong to this robot. You select the device once; Vacuum Schedule discovers its entities automatically.",
+          "related_entities": "Use only for a useful entity that belongs to neither the robot device nor any selected related device, or has no Home Assistant device at all."
+        },
+        "description": "Select related cleaning-system devices, such as a separately represented dock/station. Vacuum Schedule automatically discovers their enabled entities.\n\nFor future pre-flight checks, explicitly bind the clean-water and dirty-water tank status sources. If the selected dock exposes obvious `clean water` / `dirty water` entities, Vacuum Schedule will try to auto-detect them after submission.\n\nThe individual-entity field remains a fallback for unusual Home Assistant registry layouts.",
+        "title": "Related devices"
+      },
+      "review": {
+        "description": "Robot: **{vacuum}**\n\n**Devices used for discovery**\n\n- Primary robot device: {primary_device}\n- Related devices: {related_devices}\n- Related devices selected: **{related_device_count}**\n- Missing related device IDs: {missing_devices}\n\n**Detected capabilities**\n\n- Start: {start}\n- Stop: {stop}\n- Pause: {pause}\n- Return home: {return_home}\n- Fan mode/speed: {fan_mode}\n- Area/room cleaning through CLEAN_AREA: {room_cleaning}\n- Spot cleaning: {spot_cleaning}\n- Map: {map}\n- Locate: {locate}\n- Generic SEND_COMMAND: {send_command}\n- Robot state: {robot_state}\n- Zone cleaning: {zone_cleaning}\n- Mop/water mode: {mop_water_mode}\n- Zoned-cleaning repetitions: {repetitions}\n\nLegend: ✅ confirmed by read-only evidence, ➖ a standard support flag is absent, ❔ available evidence is insufficient.\n\n**Entities discovered across the primary robot and all selected related devices**\n\n- Battery: {battery}\n- Dock/station: {dock}\n- Water/tank: {water}\n- Clean-water status source: {clean_water_status}\n- Dirty-water status source: {dirty_water_status}\n- Mop/mopping: {mop}\n- Consumables: {consumables}\n- Other diagnostic entities: {diagnostics}\n- Manually added fallback entities: {manual_entities}\n\nTotal discovered related entities: **{related_count}**.\n\nConfirm to save this configuration. No physical command will be sent.",
+        "title": "Review detected devices, entities and capabilities"
+      },
+      "user": {
+        "data": {
+          "vacuum_entity_id": "Robot vacuum"
+        },
+        "data_description": {
+          "vacuum_entity_id": "The primary Home Assistant vacuum entity for this robot."
+        },
+        "description": "Select the robot vacuum that Vacuum Schedule will use. Version 0.8.0 supports explicit Dry-Run and Real execution modes. Upgrades from 0.6.x remain in Dry-Run until Real execution is enabled explicitly.",
+        "title": "Select the robot vacuum"
+      },
+      "migrate_legacy": {
+        "title": "Upgrade from Vacuum Scheduler",
+        "description": "A pre-0.13 **Vacuum Scheduler** entry ({legacy_title}) was found for this robot. Confirm to migrate its configuration, schedules, history, statistics, forecasts, water data and notification settings to **Vacuum Schedule** (`vacuum_schedule`). The obsolete config entry is removed after the copy completes."
+      }
+    }
+  },
+  "entity": {
+    "calendar": {
+      "schedule_calendar": {
+        "name": "Schedule"
+      }
+    },
+    "sensor": {
+      "active_jobs": {
+        "name": "Active jobs"
+      },
+      "capabilities": {
+        "name": "Supported capabilities"
+      },
+      "last_job_result": {
+        "name": "Last job result",
+        "state": {
+          "FAILED": "Failed",
+          "SUCCESS": "Success",
+          "none": "None",
+          "SUPPRESSED": "Not executed"
+        }
+      },
+      "next_deadline": {
+        "name": "Next deadline"
+      },
+      "next_run": {
+        "name": "Next run"
+      },
+      "next_warning": {
+        "name": "Next warning"
+      },
+      "planned_occurrences": {
+        "name": "Planned occurrences"
+      },
+      "related_devices": {
+        "name": "Related devices"
+      },
+      "related_entities": {
+        "name": "Detected robot entities"
+      },
+      "robot_state": {
+        "name": "Robot state",
+        "state": {
+          "cleaning": "Cleaning",
+          "docked": "Docked",
+          "error": "Error",
+          "idle": "Idle",
+          "paused": "Paused",
+          "returning": "Returning home",
+          "unavailable": "Unavailable",
+          "unknown": "Unknown"
+        }
+      },
+      "scheduler_state": {
+        "name": "Scheduler state",
+        "state": {
+          "active": "Active",
+          "unavailable": "Unavailable"
+        }
+      },
+      "status": {
+        "name": "Integration status",
+        "state": {
+          "needs_configuration": "Needs configuration",
+          "ready": "Ready",
+          "unavailable": "Vacuum unavailable"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Vacuum Schedule config entry {config_entry_id} was not found."
+    },
+    "config_entry_not_loaded": {
+      "message": "Vacuum Schedule config entry {config_entry_id} is not loaded."
+    },
+    "disabled_until_required": {
+      "message": "disabled_until is required when execution_gate is disabled_until."
+    },
+    "invalid_disabled_until": {
+      "message": "disabled_until must be a valid ISO date-time."
+    },
+    "invalid_execution_gate": {
+      "message": "The selected execution gate mode is invalid."
+    },
+    "schedule_not_found": {
+      "message": "The selected Vacuum Schedule schedule was not found."
+    }
+  },
+  "options": {
+    "abort": {
+      "no_schedules": "There are no schedules to manage.",
+      "schedule_not_found": "The selected schedule no longer exists."
+    },
+    "error": {
+      "cleaning_zones_unavailable": "No cleaning zones are configured. Create at least one cleaning zone in the Vacuum Schedule Settings view.",
+      "invalid_schedule": "The schedule is invalid. Specify at least one weekday or date and at least one target, and check all numeric values.",
+      "robot_segments_unavailable": "The vacuum did not return a room/segment list. Refresh capabilities and make sure the vacuum integration supports CLEAN_AREA/segments."
+    },
+    "step": {
+      "add_schedule": {
+        "data": {
+          "cleaning_mode": "Cleaning type",
+          "cleaning_route": "Cleaning route",
+          "dates": "Specific dates",
+          "enabled": "Enabled",
+          "execution_window_minutes": "Execution window, minutes",
+          "fan_mode": "Suction power",
+          "local_time": "Local start time",
+          "minimum_battery_percent": "Minimum remaining battery, %",
+          "minimum_start_window_minutes": "Minimum remaining start window, minutes",
+          "mop_mode": "Mopping mode",
+          "name": "Name",
+          "passes": "Cleaning passes",
+          "prewarning_minutes": "Prewarning, minutes",
+          "target_type": "Target type",
+          "water_mode": "Water flow intensity",
+          "weekdays": "Weekdays",
+          "zone_execution_policy": "Zone execution"
+        },
+        "data_description": {
+          "cleaning_mode": "What the robot should do: vacuum only, mop only, or combine both. “Do not override” leaves this setting unchanged at start.",
+          "cleaning_route": "How the robot plans its cleaning path. Shown only when the device exposes such a control.",
+          "dates": "Optional comma-separated local dates in YYYY-MM-DD format.",
+          "execution_window_minutes": "deadline_at is this long after planned_start, but never later than the next occurrence of the same schedule.",
+          "fan_mode": "Suction power. “Do not override” leaves the vacuum’s current/default power unchanged at start.",
+          "minimum_battery_percent": "Optional. Blank = use the global value from Schedule execution.",
+          "minimum_start_window_minutes": "Optional. Blank = global value. Remaining time is measured to the nearest job deadline or enabled DND start.",
+          "mop_mode": "Floor-mopping algorithm such as standard, deep, or fast when supported by the robot.",
+          "passes": "How many times the robot should cover the selected cleaning zones.",
+          "prewarning_minutes": "warning_at = planned_start minus this interval.",
+          "water_mode": "Water flow to the mop. This is separate from clean/dirty dock tank status.",
+          "weekdays": "Select recurring weekdays. You may combine them with specific dates.",
+          "zone_execution_policy": "Single robot run waits for all selected cleaning zones and starts them together. As zones become ready may execute ready zones earlier and clean the remaining zones later."
+        },
+        "description": "Create a calendar rule. Version 0.8.0 executes it through the selected global execution mode: Dry-Run or Real.",
+        "title": "Add schedule"
+      },
+      "add_schedule_targets": {
+        "data": {
+          "targets": "Cleaning zones"
+        },
+        "data_description": {
+          "targets": "Create and configure cleaning zones in the Vacuum Schedule Settings view, then select whole zones here."
+        },
+        "description": "Select one or more Scheduler Cleaning Zones. Each cleaning zone maps to exactly one robot segment or one robot zone and owns its presence sensors, access routes and manual enable/disable state.",
+        "title": "Choose cleaning zones"
+      },
+      "delete_schedule": {
+        "data": {
+          "schedule_id": "Schedule"
+        },
+        "title": "Choose schedule to delete"
+      },
+      "delete_schedule_confirm": {
+        "data": {
+          "confirm": "Confirm deletion"
+        },
+        "description": "This removes the schedule definition. A future PLANNED placeholder that has not reached warning_at is removed without a failure; a lifecycle already past warning_at is reconciled as a terminal failure.",
+        "title": "Delete {schedule_name}?"
+      },
+      "edit_schedule": {
+        "data": {
+          "schedule_id": "Schedule"
+        },
+        "title": "Choose schedule to edit"
+      },
+      "edit_schedule_details": {
+        "data": {
+          "cleaning_mode": "Cleaning type",
+          "cleaning_route": "Cleaning route",
+          "dates": "Specific dates",
+          "enabled": "Enabled",
+          "execution_window_minutes": "Execution window, minutes",
+          "fan_mode": "Suction power",
+          "local_time": "Local start time",
+          "minimum_battery_percent": "Minimum remaining battery, %",
+          "minimum_start_window_minutes": "Minimum remaining start window, minutes",
+          "mop_mode": "Mopping mode",
+          "name": "Name",
+          "passes": "Cleaning passes",
+          "prewarning_minutes": "Prewarning, minutes",
+          "target_type": "Target type",
+          "water_mode": "Water flow intensity",
+          "weekdays": "Weekdays",
+          "zone_execution_policy": "Zone execution"
+        },
+        "data_description": {
+          "cleaning_mode": "What the robot should do: vacuum only, mop only, or combine both. “Do not override” leaves this setting unchanged at start.",
+          "cleaning_route": "How the robot plans its cleaning path. Shown only when the device exposes such a control.",
+          "dates": "Optional comma-separated local dates in YYYY-MM-DD format.",
+          "execution_window_minutes": "deadline_at is capped by the next occurrence of the same schedule.",
+          "fan_mode": "Suction power. “Do not override” leaves the vacuum’s current/default power unchanged at start.",
+          "minimum_battery_percent": "Optional. Blank = use the global value from Schedule execution.",
+          "minimum_start_window_minutes": "Optional. Blank = global value. Remaining time is measured to the nearest job deadline or enabled DND start.",
+          "mop_mode": "Floor-mopping algorithm such as standard, deep, or fast when supported by the robot.",
+          "passes": "How many times the robot should cover the selected cleaning zones.",
+          "prewarning_minutes": "warning_at = planned_start minus this interval.",
+          "water_mode": "Water flow to the mop. This is separate from clean/dirty dock tank status.",
+          "weekdays": "Select recurring weekdays. You may combine them with specific dates.",
+          "zone_execution_policy": "Single robot run waits for all selected cleaning zones and starts them together. As zones become ready may execute ready zones earlier and clean the remaining zones later."
+        },
+        "description": "Current revision: {revision}. Saving keeps the stable schedule ID and creates the next revision, so future occurrence IDs change deterministically.",
+        "title": "Edit {schedule_name}"
+      },
+      "edit_schedule_targets": {
+        "data": {
+          "targets": "Cleaning zones"
+        },
+        "data_description": {
+          "targets": "Only whole Scheduler Cleaning Zones can be selected; robot targets are configured inside each cleaning zone."
+        },
+        "description": "Select the Scheduler Cleaning Zones included in this schedule. Saving creates the next schedule revision.",
+        "title": "Cleaning zones for {schedule_name}"
+      },
+      "init": {
+        "menu_options": {
+          "add_schedule": "Add schedule",
+          "delete_schedule": "Delete schedule",
+          "edit_schedule": "Edit schedule"
+        },
+        "title": "Schedules"
+      }
+    }
+  },
+  "selector": {
+    "cleaning_mode_value": {
+      "options": {
+        "custom": "Vacuum custom mode",
+        "mop": "Mop only",
+        "standard": "Standard cleaning",
+        "vac_and_mop": "Vacuum + mop",
+        "vacuum": "Vacuum only"
+      }
+    },
+    "cleaning_route_value": {
+      "options": {
+        "custom": "Vacuum custom route",
+        "deep": "Thorough route",
+        "deep_plus": "Extra thorough route",
+        "fast": "Fast route",
+        "normal": "Normal route",
+        "quick": "Fast route",
+        "standard": "Standard route"
+      }
+    },
+    "fan_mode": {
+      "options": {
+        "__vacuum_schedule_no_override__": "Do not override — use the vacuum setting",
+        "balanced": "Balanced",
+        "custom": "Vacuum custom mode",
+        "max": "Maximum",
+        "max_plus": "Maximum+",
+        "off": "Off",
+        "quiet": "Quiet",
+        "turbo": "Turbo"
+      }
+    },
+    "mop_mode_value": {
+      "options": {
+        "custom": "Vacuum custom mop mode",
+        "deep": "Deep mopping",
+        "deep_plus": "Deep mopping+",
+        "fast": "Fast mopping",
+        "standard": "Standard mopping"
+      }
+    },
+    "override_choice": {
+      "options": {
+        "none": "Do not override — use the vacuum setting"
+      }
+    },
+    "target_type": {
+      "options": {
+        "cleaning_zones": "Cleaning zones"
+      }
+    },
+    "water_mode_value": {
+      "options": {
+        "custom": "Vacuum custom water flow",
+        "intense": "Intense water flow",
+        "mild": "Low water flow",
+        "off": "No water",
+        "standard": "Standard water flow"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "fri": "Friday",
+        "mon": "Monday",
+        "sat": "Saturday",
+        "sun": "Sunday",
+        "thu": "Thursday",
+        "tue": "Tuesday",
+        "wed": "Wednesday"
+      }
+    },
+    "zone_execution_policy": {
+      "options": {
+        "combined": "Single robot run",
+        "progressive": "As zones become ready"
+      }
+    }
+  },
+  "services": {
+    "cancel_job": {
+      "description": "Cancels the selected active Job. In Real mode, an active physical execution is stopped through the execution backend; in Dry-Run, only the simulated execution attempt is cancelled.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "job_id": {
+          "description": "Materialized Vacuum Schedule Job identifier.",
+          "name": "Job ID"
+        }
+      },
+      "name": "Cancel job"
+    },
+    "emit_test_event": {
+      "description": "Emits vacuum_schedule_test_event to verify Vacuum Schedule action and event registration.",
+      "name": "Emit test event"
+    },
+    "recheck_job": {
+      "description": "Immediately re-evaluates the current Job pre-flight state without resetting occupancy/access stabilization timers.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "job_id": {
+          "description": "Materialized Vacuum Schedule Job identifier.",
+          "name": "Job ID"
+        }
+      },
+      "name": "Recheck job"
+    },
+    "refresh_capabilities": {
+      "description": "Rebuilds the read-only capability snapshot for a loaded Vacuum Schedule entry and emits vacuum_schedule_capabilities_refreshed. No robot command is sent.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry to refresh.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Refresh capabilities"
+    },
+    "run_schedule_now": {
+      "description": "Backward-compatible alias of Additional run: uses the current local day profile and does not consume the scheduled occurrence.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "schedule_id": {
+          "description": "Stable Vacuum Schedule schedule identifier.",
+          "name": "Schedule ID"
+        }
+      },
+      "name": "Additional run (legacy action name)"
+    },
+    "set_execution_gate": {
+      "description": "Changes the global execution gate for the selected Vacuum Schedule entry.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "disabled_until": {
+          "description": "Required only for the disabled-until mode.",
+          "name": "Disabled until"
+        },
+        "execution_gate": {
+          "description": "Enabled, disabled, or disabled until a date/time.",
+          "name": "Execution gate"
+        }
+      },
+      "name": "Set execution gate"
+    },
+    "set_schedule_enabled": {
+      "description": "Enables or disables one Vacuum Schedule schedule.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "enabled": {
+          "description": "Whether the schedule is enabled.",
+          "name": "Enabled"
+        },
+        "schedule_id": {
+          "description": "Stable Vacuum Schedule schedule identifier.",
+          "name": "Schedule ID"
+        }
+      },
+      "name": "Set schedule enabled"
+    },
+    "skip_job": {
+      "description": "Finishes a planned or waiting Job as a user-initiated failure. No physical robot command is sent.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "job_id": {
+          "description": "Materialized Vacuum Schedule Job identifier.",
+          "name": "Job ID"
+        }
+      },
+      "name": "Skip job"
+    },
+    "start_job_now": {
+      "description": "Backward-compatible low-level action by Job ID. Releases an existing PLANNED/WAIT Job; schedule automations should normally use Run early manually or Smart run.",
+      "fields": {
+        "config_entry_id": {
+          "description": "Vacuum Schedule config entry.",
+          "name": "Config entry"
+        },
+        "job_id": {
+          "description": "Materialized Vacuum Schedule Job identifier.",
+          "name": "Job ID"
+        },
+        "ignore_busy_zones": {
+          "name": "Ignore occupied zones",
+          "description": "Accept only current zone_busy blockers for this one start. All other authoritative pre-flight blockers remain in force."
+        }
+      },
+      "name": "Start job now"
+    },
+    "additional_run": {
+      "name": "Additional run",
+      "description": "Creates a separate manual Job from the selected schedule using the cleaning profile effective for the current Home Assistant local calendar day. It does not consume the scheduled occurrence.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "schedule_id": {
+          "name": "Schedule ID",
+          "description": "Stable Vacuum Schedule schedule identifier. The same ID is shown in the Schedules table."
+        }
+      }
+    },
+    "run_early": {
+      "name": "Run early manually",
+      "description": "Executes the nearest future materialized occurrence of the selected schedule now. The Job keeps the cleaning-parameter snapshot of its original planned day and the occurrence is consumed as an early execution.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "schedule_id": {
+          "name": "Schedule ID",
+          "description": "Stable Vacuum Schedule schedule identifier. The same ID is shown in the Schedules table."
+        },
+        "ignore_busy_zones": {
+          "name": "Ignore occupied zones",
+          "description": "Accept only current zone_busy blockers for this one start. All other authoritative pre-flight blockers remain in force."
+        }
+      }
+    },
+    "smart_run": {
+      "name": "Smart run",
+      "description": "Automation-oriented start. If a not-yet-started scheduled occurrence for the current local day still exists, executes that exact occurrence; otherwise creates a separate additional run using today's effective profile.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "schedule_id": {
+          "name": "Schedule ID",
+          "description": "Stable Vacuum Schedule schedule identifier. The same ID is shown in the Schedules table."
+        },
+        "ignore_busy_zones": {
+          "name": "Ignore occupied zones",
+          "description": "Accept only current zone_busy blockers for this one start. All other authoritative pre-flight blockers remain in force."
+        }
+      }
+    },
+    "pause_job": {
+      "name": "Pause current execution",
+      "description": "Pauses the selected scheduler-owned REAL execution. The Job remains active and can be resumed.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "job_id": {
+          "name": "Job ID",
+          "description": "Materialized Vacuum Schedule Job identifier."
+        }
+      }
+    },
+    "resume_job": {
+      "name": "Resume current execution",
+      "description": "Resumes the selected scheduler-owned REAL execution when the robot is observed paused.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "job_id": {
+          "name": "Job ID",
+          "description": "Materialized Vacuum Schedule Job identifier."
+        }
+      }
+    },
+    "set_schedule_paused": {
+      "name": "Pause or resume schedule",
+      "description": "Changes the schedule execution pause without disabling calendar planning. A paused schedule keeps its projection but does not start Jobs.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "schedule_id": {
+          "name": "Schedule ID",
+          "description": "Stable Vacuum Schedule schedule identifier. The same ID is shown in the Schedules table."
+        },
+        "paused": {
+          "name": "Paused",
+          "description": "Whether execution of this schedule is paused."
+        }
+      }
+    },
+    "rebuild_schedule": {
+      "name": "Rebuild future schedule",
+      "description": "Rebuilds future materialized Jobs from the current schedule definitions. Can optionally restore occurrences that were previously consumed by early execution.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Vacuum Schedule config entry."
+        },
+        "restore_early_executed": {
+          "name": "Restore early-executed occurrences",
+          "description": "Also recreate future occurrences that had already been consumed by early execution."
+        }
+      }
+    }
+  },
+  "title": "Vacuum Schedule"
+}
