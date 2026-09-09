@@ -58,7 +58,7 @@ def test_project_tests_workflow_covers_release_gate():
         "branches:",
         "- main",
         "tags:",
-        '- "v*"',
+        '- "[0-9]+.[0-9]+.[0-9]+"',
         "pull_request:",
         "release:",
         "types: [published]",
