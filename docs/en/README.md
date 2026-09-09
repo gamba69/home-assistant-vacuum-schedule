@@ -17,7 +17,7 @@ The previous `vacuum_scheduler` public identity is legacy and is used only by th
 
 For a new installation, copy `custom_components/vacuum_schedule/` to the Home Assistant `custom_components` directory and restart Home Assistant. The repository layout is HACS-ready, so it can also be added as a custom HACS integration repository.
 
-For an upgrade from 0.12.61, install 0.13.1, restart Home Assistant, add **Vacuum Schedule**, select the same vacuum and confirm migration of the detected legacy entry.
+For an upgrade from 0.12.61, install 0.13.2, restart Home Assistant, add **Vacuum Schedule**, select the same vacuum and confirm migration of the detected legacy entry.
 
 ## Current model
 

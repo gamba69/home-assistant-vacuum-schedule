@@ -3,3 +3,4 @@ __pycache__/
 .pytest_cache/
 *.zip
 .DS_Store
+*.patch

@@ -161,7 +161,7 @@ class VacuumSchedulePanel extends HTMLElement {
   async _loadTranslationCatalog(language) {
     const lang = ["ru", "uk", "en"].includes(String(language)) ? String(language) : "en";
     if (VACUUM_SCHEDULER_LOCALIZATION_CACHE.has(lang)) return VACUUM_SCHEDULER_LOCALIZATION_CACHE.get(lang);
-    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.1`, { cache: "no-cache" });
+    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.2`, { cache: "no-cache" });
     if (!response.ok) throw new Error(`localization_${lang}_${response.status}`);
     const catalog = await response.json();
     VACUUM_SCHEDULER_LOCALIZATION_CACHE.set(lang, catalog);
@@ -6184,7 +6184,7 @@ class VacuumSchedulePanel extends HTMLElement {
 }
 
 const VACUUM_SCHEDULER_PANEL_NAMES = [
-  "vacuum-schedule-panel-0131",
+  "vacuum-schedule-panel-0132",
   "vacuum-schedule-panel-01260",
   "vacuum-schedule-panel-01259",
   "vacuum-schedule-panel-01258",

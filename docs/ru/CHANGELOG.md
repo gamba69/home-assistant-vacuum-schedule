@@ -1,5 +1,14 @@
 # История изменений
 
+## 0.13.2
+
+- Исправлен порядок ключей `manifest.json` по требованиям hassfest.
+- `*.patch` добавлен в `.gitignore`; случайно попавший в репозиторий патч 0.13.1 удалён.
+- Добавлен GitHub Actions workflow полного проектного тестирования: regression suite, компиляция Python, проверка синтаксиса frontend JavaScript, JSON/YAML и запрет закоммиченных patch-файлов для `main`, pull request, тегов версий и опубликованных релизов.
+- GitHub checkout actions обновлены на версию на базе Node 24.
+- Версия интеграции и frontend cache/component identity подняты до 0.13.2.
+- Проверка релиза: **989 тестов успешно**, Python compile, синтаксис frontend JavaScript и JSON/YAML прошли проверку.
+
 ## 0.13.1
 
 - Исправлена HACS/hassfest-валидация нового репозитория.

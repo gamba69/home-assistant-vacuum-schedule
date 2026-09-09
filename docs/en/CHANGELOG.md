@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.2
+
+- Fixed hassfest manifest key ordering.
+- Added `*.patch` to `.gitignore` and removed the accidentally committed 0.13.1 patch artifact.
+- Added a GitHub Actions project-test workflow that runs the regression suite, Python compilation, frontend JavaScript syntax check, JSON/YAML validation and rejects committed patch artifacts on `main`, pull requests, version tags and published releases.
+- Updated GitHub checkout actions to the Node 24 based version.
+- Bumped the integration and frontend cache/component identity to 0.13.2.
+- Release verification: **989 tests passed**, Python compile, frontend JavaScript syntax and JSON/YAML validation passed.
+
 ## 0.13.1
 
 - Fixed HACS/hassfest release validation for the new repository.

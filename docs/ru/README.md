@@ -17,7 +17,7 @@ Vacuum Schedule — пользовательская интеграция Home A
 
 Для новой установки скопируйте `custom_components/vacuum_schedule/` в каталог `custom_components` Home Assistant и перезапустите Home Assistant. Структура репозитория подготовлена для добавления как custom repository HACS.
 
-При обновлении с 0.12.61 установите 0.13.1, перезапустите Home Assistant, добавьте **Vacuum Schedule**, выберите тот же пылесос и подтвердите миграцию найденной legacy-записи.
+При обновлении с 0.12.61 установите 0.13.2, перезапустите Home Assistant, добавьте **Vacuum Schedule**, выберите тот же пылесос и подтвердите миграцию найденной legacy-записи.
 
 ## Текущая модель
 

@@ -29,3 +29,7 @@ The release must verify that the migration layer copies every 0.12.61 integratio
 ## Baseline
 
 0.12.61: 974 tests passed. The 0.13.0 suite retains that regression base and adds rename, documentation and legacy-data migration contracts.
+
+## GitHub CI
+
+The same project gate runs automatically on pushes to `main`, pull requests, version tags and published releases. HACS validation and hassfest remain separate workflows. Generated `*.patch` files are local delivery artifacts and must never be committed.

@@ -1,6 +1,6 @@
 # Vacuum Schedule
 
-Home Assistant custom integration · `vacuum_schedule` · v0.13.1
+Home Assistant custom integration · `vacuum_schedule` · v0.13.2
 
 **English:** [Documentation](docs/en/README.md) · [Changelog](docs/en/CHANGELOG.md)
 

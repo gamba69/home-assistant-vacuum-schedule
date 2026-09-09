@@ -29,3 +29,7 @@ node --check custom_components/vacuum_schedule/frontend/panel.js
 ## Базовая точка
 
 0.12.61: 974 теста успешно. В 0.13.0 эта база сохраняется и дополняется контрактами переименования, трёхъязычной документации и legacy-data migration.
+
+## GitHub CI
+
+Тот же проектный gate автоматически запускается при push в `main`, pull request, тегах версий и публикации релиза. HACS validation и hassfest остаются отдельными workflow. Генерируемые `*.patch` — локальные файлы доставки и никогда не должны попадать в Git.
