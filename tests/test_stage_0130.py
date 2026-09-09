@@ -1,4 +1,4 @@
-"""Release-identity and migration contracts for Vacuum Schedule 0.13.0."""
+"""Release-identity and migration contracts for Vacuum Schedule 0.13.x."""
 from __future__ import annotations
 
 import json
@@ -24,13 +24,13 @@ def test_release_identity_is_exact():
     manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "Vacuum Schedule"
     assert manifest["domain"] == "vacuum_schedule"
-    assert manifest["version"] == "0.13.0"
+    assert manifest["version"] == "0.13.1"
     assert manifest["documentation"] == "https://github.com/gamba69/home-assistant-vacuum-schedule"
     assert manifest["issue_tracker"] == "https://github.com/gamba69/home-assistant-vacuum-schedule/issues"
     assert manifest["codeowners"] == ["@gamba69"]
     const = (COMPONENT / "const.py").read_text(encoding="utf-8")
     assert 'DOMAIN: Final = "vacuum_schedule"' in const
-    assert 'VERSION: Final = "0.13.0"' in const
+    assert 'VERSION: Final = "0.13.1"' in const
 
 
 def test_repository_has_exactly_one_hacs_integration_directory():
@@ -118,7 +118,7 @@ def test_project_documentation_has_en_ru_uk_file_parity():
         lang: {p.name for p in (ROOT / "docs" / lang).iterdir() if p.is_file()}
         for lang in ("en", "ru", "uk")
     }
-    expected = {"README.md", "ARCHITECTURE.md", "TESTING.md", "MIGRATION_0.13.0.md", "CHANGELOG.md"}
+    expected = {"README.md", "ARCHITECTURE.md", "TESTING.md", "CHANGELOG.md"}
     assert doc_sets["en"] == doc_sets["ru"] == doc_sets["uk"] == expected
 
 
@@ -132,3 +132,41 @@ def test_native_custom_integration_translations_have_three_language_key_parity()
     assert _leaf_paths(catalogs["uk"]) == keys
     assert "migrate_legacy" in catalogs["en"]["config"]["step"]
     assert not (COMPONENT / "strings.json").exists()
+
+
+def test_one_off_release_documents_are_permanently_absent():
+    for pattern in ("PATCH_*.md", "MIGRATION_*.md", "FIX_*.md"):
+        assert not list(ROOT.rglob(pattern))
+    readmes = [ROOT / "README.md", *(ROOT / "docs" / lang / "README.md" for lang in ("en", "ru", "uk"))]
+    for path in readmes:
+        assert "MIGRATION_0.13.0.md" not in path.read_text(encoding="utf-8")
+
+
+def test_hassfest_manifest_and_config_schema_contracts():
+    manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
+    assert set(manifest["dependencies"]) >= {"frontend", "http", "panel_custom"}
+    init_source = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
+    assert "from homeassistant.helpers import config_validation as cv" in init_source
+    assert "CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)" in init_source
+
+
+def test_hassfest_translation_state_and_selector_keys_are_valid():
+    for lang in ("en", "ru", "uk"):
+        catalog = json.loads((COMPONENT / "translations" / f"{lang}.json").read_text(encoding="utf-8"))
+        states = catalog["entity"]["sensor"]["last_job_result"]["state"]
+        assert set(states) == {"failed", "success", "none", "suppressed"}
+        fan_options = catalog["selector"]["fan_mode"]["options"]
+        assert "vacuum_schedule_no_override" in fan_options
+        assert "__vacuum_schedule_no_override__" not in fan_options
+
+    sensor_source = (COMPONENT / "sensor.py").read_text(encoding="utf-8")
+    assert '.get("result") or "none").lower()' in sensor_source
+
+    flow_source = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+    assert '_CONTROL_NONE = "vacuum_schedule_no_override"' in flow_source
+    assert '_LEGACY_CONTROL_NONE = "__vacuum_schedule_no_override__"' in flow_source
+    assert "_is_control_none(fan_mode)" in flow_source
+
+    panel_source = (COMPONENT / "frontend" / "panel.js").read_text(encoding="utf-8")
+    assert '"vacuum_schedule_no_override"' in panel_source
+    assert '"__vacuum_schedule_no_override__"' not in panel_source

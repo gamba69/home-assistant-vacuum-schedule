@@ -109,7 +109,7 @@ def test_frontend_forecast_signature_ignores_fields_hidden_by_effective_cleaning
 const fs=require('fs');global.HTMLElement=class {{attachShadow(){{this.shadowRoot={{innerHTML:''}};return this.shadowRoot;}}}};
 const byName=new Map();global.customElements={{get:(n)=>byName.get(n),define:(n,c)=>byName.set(n,c)}};
 eval(fs.readFileSync({str(panel)!r},'utf8'));
-const C=byName.get('vacuum-schedule-panel-0130'); const x=new C();
+const C=byName.get('vacuum-schedule-panel-0131'); const x=new C();
 x._language='ru-RU'; x._translations={{}}; x._fallbackTranslations={{}};
 const old={{cleaning_mode:'vacuum',fan_mode:'turbo',mop_mode:'standard',water_mode:'weak'}};
 const current={{cleaning_mode:'vacuum',fan_mode:'turbo',passes:1}};

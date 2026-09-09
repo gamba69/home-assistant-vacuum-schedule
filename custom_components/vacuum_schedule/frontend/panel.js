@@ -161,7 +161,7 @@ class VacuumSchedulePanel extends HTMLElement {
   async _loadTranslationCatalog(language) {
     const lang = ["ru", "uk", "en"].includes(String(language)) ? String(language) : "en";
     if (VACUUM_SCHEDULER_LOCALIZATION_CACHE.has(lang)) return VACUUM_SCHEDULER_LOCALIZATION_CACHE.get(lang);
-    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.0`, { cache: "no-cache" });
+    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.1`, { cache: "no-cache" });
     if (!response.ok) throw new Error(`localization_${lang}_${response.status}`);
     const catalog = await response.json();
     VACUUM_SCHEDULER_LOCALIZATION_CACHE.set(lang, catalog);
@@ -4468,7 +4468,7 @@ class VacuumSchedulePanel extends HTMLElement {
   _optionsHtml(options, selected, includeNone = false, kind = null) {
     const selectedText = String(selected ?? "");
     const base = includeNone
-      ? [{ value: "__vacuum_schedule_no_override__", label: this._noOverrideLabel(), raw_value: null }, ...options]
+      ? [{ value: "vacuum_schedule_no_override", label: this._noOverrideLabel(), raw_value: null }, ...options]
       : [...options];
     const visible = base.filter((item) => {
       const raw = item.raw_value ?? (kind ? this._controlRawValue(item) : item.value);
@@ -4476,7 +4476,7 @@ class VacuumSchedulePanel extends HTMLElement {
     });
     return visible.map((item) => {
       let label = item.label;
-      if (String(item.value) === "__vacuum_schedule_no_override__") {
+      if (String(item.value) === "vacuum_schedule_no_override") {
         label = this._noOverrideLabel();
       } else if (kind) {
         const raw = item.raw_value ?? this._controlRawValue(item);
@@ -4645,11 +4645,11 @@ class VacuumSchedulePanel extends HTMLElement {
 
   _controlField(key, label) {
     const options = this._editor.controls?.[key] || [];
-    const current = this._form[key] || "__vacuum_schedule_no_override__";
-    if (!options.length && current === "__vacuum_schedule_no_override__") return "";
+    const current = this._form[key] || "vacuum_schedule_no_override";
+    if (!options.length && current === "vacuum_schedule_no_override") return "";
     const known = new Set(options.map((x) => String(x.value)));
     const rendered = [...options];
-    if (current !== "__vacuum_schedule_no_override__" && !known.has(String(current))) {
+    if (current !== "vacuum_schedule_no_override" && !known.has(String(current))) {
       rendered.push({ value: current, label: `⚠ ${current}`, raw_value: this._controlRawValue({ value: current, label: current }) });
     }
     return `<label class="field"><span>${label}</span><small class="help">${this._escape(this._fieldHelp(key))}</small><select data-field="${key}">${this._optionsHtml(rendered, current, true, key)}</select></label>`;
@@ -6184,7 +6184,7 @@ class VacuumSchedulePanel extends HTMLElement {
 }
 
 const VACUUM_SCHEDULER_PANEL_NAMES = [
-  "vacuum-schedule-panel-0130",
+  "vacuum-schedule-panel-0131",
   "vacuum-schedule-panel-01260",
   "vacuum-schedule-panel-01259",
   "vacuum-schedule-panel-01258",

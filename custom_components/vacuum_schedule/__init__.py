@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .capabilities import detect_dock_water_status_entities, discover_vacuum_snapshot
@@ -46,6 +47,8 @@ from .runtime import VacuumScheduleRuntime
 from .scheduler_engine import SchedulerEngine
 from .frontend import async_setup_frontend
 from .migrations import async_migrate_entry
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.CALENDAR]
 

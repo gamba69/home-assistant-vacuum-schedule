@@ -1,7 +1,7 @@
 {
   "domain": "vacuum_schedule",
   "name": "Vacuum Schedule",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "config_flow": true,
   "documentation": "https://github.com/gamba69/home-assistant-vacuum-schedule",
   "issue_tracker": "https://github.com/gamba69/home-assistant-vacuum-schedule/issues",
@@ -12,6 +12,7 @@
   "iot_class": "calculated",
   "dependencies": [
     "frontend",
+    "http",
     "panel_custom"
   ]
 }

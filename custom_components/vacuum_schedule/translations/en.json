@@ -91,10 +91,10 @@
       "last_job_result": {
         "name": "Last job result",
         "state": {
-          "FAILED": "Failed",
-          "SUCCESS": "Success",
+          "failed": "Failed",
+          "success": "Success",
           "none": "None",
-          "SUPPRESSED": "Not executed"
+          "suppressed": "Not executed"
         }
       },
       "next_deadline": {
@@ -324,7 +324,7 @@
     },
     "fan_mode": {
       "options": {
-        "__vacuum_schedule_no_override__": "Do not override — use the vacuum setting",
+        "vacuum_schedule_no_override": "Do not override — use the vacuum setting",
         "balanced": "Balanced",
         "custom": "Vacuum custom mode",
         "max": "Maximum",

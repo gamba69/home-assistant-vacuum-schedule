@@ -17,7 +17,7 @@ Vacuum Schedule — користувацька інтеграція Home Assista
 
 Для нової інсталяції скопіюйте `custom_components/vacuum_schedule/` до каталогу `custom_components` Home Assistant і перезапустіть Home Assistant. Структура репозиторію підготовлена для додавання як custom repository HACS.
 
-Під час оновлення з 0.12.61 спочатку прочитайте [MIGRATION_0.13.0.md](MIGRATION_0.13.0.md).
+Під час оновлення з 0.12.61 встановіть 0.13.1, перезапустіть Home Assistant, додайте **Vacuum Schedule**, виберіть той самий пилосос і підтвердьте міграцію знайденого legacy-запису.
 
 ## Поточна модель
 
@@ -45,5 +45,4 @@ Vacuum Schedule — користувацька інтеграція Home Assista
 
 - [Архітектура](ARCHITECTURE.md)
 - [Тестування та перевірка релізу](TESTING.md)
-- [Міграція 0.12.61 → 0.13.0](MIGRATION_0.13.0.md)
 - [Історія змін](CHANGELOG.md)

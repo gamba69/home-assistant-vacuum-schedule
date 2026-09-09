@@ -3,7 +3,7 @@
 from typing import Final
 
 DOMAIN: Final = "vacuum_schedule"
-VERSION: Final = "0.13.0"
+VERSION: Final = "0.13.1"
 
 PLATFORMS: Final = ["sensor", "calendar"]
 

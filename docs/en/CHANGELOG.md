@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.1
+
+- Fixed HACS/hassfest release validation for the new repository.
+- Declared the Home Assistant `http` dependency used by the custom panel static path.
+- Declared the integration as config-entry-only for YAML schema validation.
+- Normalized translatable sensor state keys to Home Assistant-compatible lowercase values without changing internal Job results.
+- Replaced the invalid selector sentinel with a valid value while retaining compatibility with legacy stored schedules.
+- Added the repository license and removed obsolete migration-document links from README files.
+- Bumped the frontend component/cache identity to 0.13.1.
+
 ## 0.13.0
 
 - Renamed the integration to **Vacuum Schedule**.

@@ -122,8 +122,14 @@ CONF_MINIMUM_START_WINDOW_MINUTES = "minimum_start_window_minutes"
 CONF_SCHEDULE_ID = "schedule_id"
 CONF_CONFIRM = "confirm"
 
-_CONTROL_NONE = "__vacuum_schedule_no_override__"
+_CONTROL_NONE = "vacuum_schedule_no_override"
+_LEGACY_CONTROL_NONE = "__vacuum_schedule_no_override__"
 _CONTROL_ENTITY_SUFFIX = "_entity_id"
+
+
+def _is_control_none(value: Any) -> bool:
+    """Return whether a form value means that the robot setting is not overridden."""
+    return isinstance(value, str) and value in {_CONTROL_NONE, _LEGACY_CONTROL_NONE}
 
 
 def _translated_selector_option(hass: Any, selector_key: str, value: str, fallback: str | None = None) -> str:
@@ -176,7 +182,7 @@ def _control_token(entity_id: str, value: str) -> str:
 
 
 def _decode_control_token(value: Any) -> tuple[str, str] | None:
-    if not isinstance(value, str) or value == _CONTROL_NONE:
+    if not isinstance(value, str) or _is_control_none(value):
         return None
     try:
         payload = json.loads(value)
@@ -359,6 +365,8 @@ def _device_control_options(hass: Any, snapshot: VacuumSnapshot) -> dict[str, li
 
 
 def _select_with_none(hass: Any, options: list[dict[str, str]], default: str) -> selector.SelectSelector:
+    if _is_control_none(default):
+        default = _CONTROL_NONE
     no_override = _translated_selector_option(
         hass, "override_choice", "none", "Do not override / use vacuum setting"
     )
@@ -408,6 +416,8 @@ def _schedule_details_schema(
     fan_modes = list(snapshot.capabilities.fan_speed_list)
     if fan_modes:
         saved_fan = str(defaults.get(CONF_FAN_MODE, ""))
+        if _is_control_none(saved_fan):
+            saved_fan = ""
         # "custom" is a vendor-side placeholder, not a useful deterministic
         # scheduler preset. Hide it for new selections but preserve it when an
         # existing schedule already stores it.
@@ -424,8 +434,9 @@ def _schedule_details_schema(
 
     controls = _device_control_options(hass, snapshot)
     for key in (CONF_CLEANING_MODE, CONF_CLEANING_ROUTE, CONF_MOP_MODE, CONF_WATER_MODE):
-        if controls[key] or defaults.get(key, _CONTROL_NONE) != _CONTROL_NONE:
-            default = str(defaults.get(key, _CONTROL_NONE))
+        raw_default = defaults.get(key, _CONTROL_NONE)
+        if controls[key] or not _is_control_none(raw_default):
+            default = _CONTROL_NONE if _is_control_none(raw_default) else str(raw_default)
             fields[vol.Optional(key, default=default)] = _select_with_none(hass, controls[key], default)
 
     # Repetitions are intentionally a choice, not a free numeric text field.
@@ -583,7 +594,7 @@ def _schedule_from_form(
     _apply_control_from_form(params, user_input, CONF_WATER_MODE)
     if CONF_FAN_MODE in user_input:
         fan_mode = str(user_input.get(CONF_FAN_MODE, "")).strip()
-        params[CONF_FAN_MODE] = "" if fan_mode == _CONTROL_NONE else fan_mode
+        params[CONF_FAN_MODE] = "" if _is_control_none(fan_mode) else fan_mode
     params[CONF_PASSES] = int(user_input.get(CONF_PASSES, params.get(CONF_PASSES, DEFAULT_PASSES)))
     if CONF_MINIMUM_BATTERY_PERCENT in user_input:
         raw_battery = user_input.get(CONF_MINIMUM_BATTERY_PERCENT)

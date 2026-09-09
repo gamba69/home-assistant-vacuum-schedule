@@ -427,7 +427,7 @@ class VacuumScheduleLastResultSensor(_VacuumScheduleEngineSensor):
     @property
     def native_value(self) -> str:
         history = self._status().get("history", [])
-        return str(history[0].get("result") or "none") if history else "none"
+        return str(history[0].get("result") or "none").lower() if history else "none"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

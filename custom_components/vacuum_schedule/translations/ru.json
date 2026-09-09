@@ -91,10 +91,10 @@
       "last_job_result": {
         "name": "Результат последнего задания",
         "state": {
-          "FAILED": "Не выполнено",
-          "SUCCESS": "Успешно",
+          "failed": "Не выполнено",
+          "success": "Успешно",
           "none": "Нет",
-          "SUPPRESSED": "Не выполнено"
+          "suppressed": "Не выполнено"
         }
       },
       "next_deadline": {
@@ -324,7 +324,7 @@
     },
     "fan_mode": {
       "options": {
-        "__vacuum_schedule_no_override__": "Не менять — использовать настройку пылесоса",
+        "vacuum_schedule_no_override": "Не менять — использовать настройку пылесоса",
         "balanced": "Сбалансированный",
         "custom": "Пользовательский режим пылесоса",
         "max": "Максимальный",
