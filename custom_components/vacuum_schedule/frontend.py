@@ -93,7 +93,7 @@ from .planner import OccurrencePlanner
 from .schedule import ScheduleDefinition, ScheduleValidationError
 from .notification_models import NotificationEventType, normalize_notification_settings
 
-PANEL_COMPONENT = "vacuum-schedule-panel-0133"
+PANEL_COMPONENT = "vacuum-schedule-panel-0134"
 # Legacy browser-cache component name: vacuum-schedule-panel-0635
 PANEL_URL_PATH = "vacuum-schedule"
 FRONTEND_BASE_URL = "/vacuum_schedule_frontend"
@@ -1436,7 +1436,7 @@ async def websocket_notifications_clear_history(
     vol.Required("type"): f"{DOMAIN}/jobs/action",
     vol.Required("entry_id"): str,
     vol.Required("job_id"): str,
-    vol.Required("action"): vol.In(["additional_run", "start_now", "start_now_ignore_busy", "skip", "cancel", "recheck", "pause", "resume"]),
+    vol.Required("action"): vol.In(["additional_run", "start_now", "start_now_ignore_busy", "ignore_occupancy", "respect_occupancy", "skip", "cancel", "recheck", "pause", "resume"]),
 })
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -1460,6 +1460,13 @@ async def websocket_job_action(
                 source="frontend",
                 user_id=user_id,
                 ignore_busy_zones=action == "start_now_ignore_busy",
+            )
+        elif action in {"ignore_occupancy", "respect_occupancy"}:
+            job = await scheduler.async_set_job_occupancy_override(
+                msg["job_id"],
+                ignore=action == "ignore_occupancy",
+                source="frontend",
+                user_id=user_id,
             )
         elif action == "skip":
             job = await scheduler.async_skip_job(msg["job_id"], source="frontend", user_id=user_id)

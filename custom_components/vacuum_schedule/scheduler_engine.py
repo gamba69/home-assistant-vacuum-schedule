@@ -3353,6 +3353,113 @@ class SchedulerEngine:
         await self.async_reconcile()
         return job
 
+    async def async_set_job_occupancy_override(
+        self,
+        job_id: str,
+        *,
+        ignore: bool,
+        source: str = "frontend",
+        user_id: str | None = None,
+        recipient_id: str | None = None,
+        actor_name: str | None = None,
+    ) -> JobInstance:
+        """Accept or restore occupancy checks for one materialized occurrence.
+
+        This is intentionally different from ``async_start_job_now``: changing
+        the occupancy decision must not force, advance or otherwise release the
+        occurrence.  It only removes/restores the ``zone_busy`` blocker for the
+        current Job, after which the normal scheduler/arbiter decides when the
+        robot may actually start.
+        """
+        async with self._lock:
+            job = self.store.active.get(job_id)
+            if job is None or job.terminal:
+                raise ValueError("job_not_found")
+            if job.state not in (JobState.PLANNED, JobState.WAIT):
+                raise ValueError("job_occupancy_override_unavailable")
+
+            now = self.clock.now()
+            self._sync_zone_runs(job)
+            raw_overrides = job.metadata.get("manual_overrides")
+            overrides = dict(raw_overrides) if isinstance(raw_overrides, dict) else {}
+
+            if ignore:
+                accepted = {
+                    str(item)
+                    for item in overrides.get("ignore_busy_zones", ())
+                    if str(item)
+                }
+                newly_accepted: list[str] = []
+                for zone_id, zone_run in job.zone_runs.items():
+                    if zone_run.terminal or zone_run.state in (
+                        ZoneJobState.STARTING,
+                        ZoneJobState.RUNNING,
+                    ):
+                        continue
+                    report = self.preflight.evaluate_zone(
+                        job, zone_id, PreflightPhase.AUTHORITATIVE, now
+                    )
+                    if "zone_busy" in report.blocker_codes and zone_id not in accepted:
+                        accepted.add(zone_id)
+                        newly_accepted.append(zone_id)
+
+                if accepted:
+                    overrides["ignore_busy_zones"] = sorted(accepted)
+                    overrides["occupancy_accepted_at"] = now.isoformat()
+                    job.metadata["manual_overrides"] = overrides
+                if newly_accepted:
+                    self.store.append_event(
+                        job,
+                        "manual_occupancy_override",
+                        now,
+                        details={
+                            "zone_ids": sorted(newly_accepted),
+                            "source": source,
+                            "user_id": user_id,
+                        },
+                    )
+                action = "ignore_occupancy"
+            else:
+                cleared = sorted(
+                    {
+                        str(item)
+                        for item in overrides.get("ignore_busy_zones", ())
+                        if str(item)
+                    }
+                )
+                overrides.pop("ignore_busy_zones", None)
+                overrides.pop("occupancy_accepted_at", None)
+                if overrides:
+                    job.metadata["manual_overrides"] = overrides
+                else:
+                    job.metadata.pop("manual_overrides", None)
+                if cleared:
+                    self.store.append_event(
+                        job,
+                        "manual_occupancy_override_cleared",
+                        now,
+                        details={
+                            "zone_ids": cleared,
+                            "source": source,
+                            "user_id": user_id,
+                        },
+                    )
+                action = "respect_occupancy"
+
+            self._record_user_action(
+                job,
+                action,
+                now,
+                source,
+                user_id,
+                recipient_id=recipient_id,
+                actor_name=actor_name,
+            )
+            await self.store.async_save()
+
+        await self.async_recheck_jobs({job_id})
+        return job
+
     async def async_skip_job(
         self, job_id: str, *, source: str = "frontend", user_id: str | None = None,
         recipient_id: str | None = None, actor_name: str | None = None,

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.4
+
+- Added a per-occurrence occupancy override for waiting jobs: **Ignore occupancy** removes only current `zone_busy` blockers and leaves the job in the normal scheduler/arbiter pipeline.
+- Added **Respect occupancy** to restore the normal occupancy check before execution when the override is still active.
+- The override is persisted only on the current Job, survives restart, is audited in user-action/lifecycle history, and never changes zone or schedule configuration.
+- Added clear EN/RU/UK confirmation text and a visible note while occupancy is being ignored.
+- Bumped the integration version and frontend cache/component identity to 0.13.4.
+
 ## 0.13.3
 
 - Improved failed-execution history so generic physical failures resolve to a confirmed clean-water, dirty-water or detergent cause when the robot/dock observation contains authoritative resource evidence; the original technical failure code is retained in attempt metadata.

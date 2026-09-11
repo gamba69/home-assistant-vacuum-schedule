@@ -161,7 +161,7 @@ class VacuumSchedulePanel extends HTMLElement {
   async _loadTranslationCatalog(language) {
     const lang = ["ru", "uk", "en"].includes(String(language)) ? String(language) : "en";
     if (VACUUM_SCHEDULER_LOCALIZATION_CACHE.has(lang)) return VACUUM_SCHEDULER_LOCALIZATION_CACHE.get(lang);
-    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.3`, { cache: "no-cache" });
+    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.4`, { cache: "no-cache" });
     if (!response.ok) throw new Error(`localization_${lang}_${response.status}`);
     const catalog = await response.json();
     VACUUM_SCHEDULER_LOCALIZATION_CACHE.set(lang, catalog);
@@ -1731,7 +1731,8 @@ class VacuumSchedulePanel extends HTMLElement {
     }
     if(state==="WAIT"){
       const text=labels.length?labels.join(" · "):this._tr("panel.unknown");
-      return `<span class="job-now-main readiness readiness-wait"><b>${this._escape(text)}</b></span>`;
+      const ignored=((job?.metadata?.manual_overrides?.ignore_busy_zones)||[]).length>0;
+      return `<span class="job-now-main readiness readiness-wait"><b>${this._escape(text)}</b>${ignored?`<small>${this._tr("panel.occupancy_ignored_for_this_job")}</small>`:""}</span>`;
     }
     if(!job.advisory_checked_at&&!blockers.length) return stack(`<span class="job-now-main readiness readiness-unknown"><b>${this._tr("panel.now_check_at",{time:this._formatDateTime(job.warning_at)})}</b></span>`);
     const decision=job.current_preflight_decision||(blockers.length?"WAIT":"PASS");
@@ -1981,6 +1982,8 @@ class VacuumSchedulePanel extends HTMLElement {
       run_schedule_now:this._tr("panel.run_schedule_now"),
       start_job_now:this._tr("panel.start_now"),
       start_job_now_ignore_busy:this._tr("panel.manual_occupancy_override"),
+      ignore_occupancy:this._tr("panel.ignore_occupancy"),
+      respect_occupancy:this._tr("panel.respect_occupancy"),
       skip:this._tr("panel.skip"),
       recheck:this._tr("panel.recheck"),
       cancel:this._tr("panel.cancel_f8a3423"),
@@ -2083,6 +2086,8 @@ class VacuumSchedulePanel extends HTMLElement {
       reconciled:this._tr("panel.lifecycle_reconciled"),
       recovered:this._tr("panel.lifecycle_recovered"),
       external_execution_detected:this._tr("panel.lifecycle_external_execution"),
+      manual_occupancy_override:this._tr("panel.ignore_occupancy"),
+      manual_occupancy_override_cleared:this._tr("panel.respect_occupancy"),
     };
     return labels[String(value||"")] || String(value||"—");
   }
@@ -2615,6 +2620,9 @@ class VacuumSchedulePanel extends HTMLElement {
   _jobRowActionsHtml(job) {
     const button = (action, icon, label, style = "ghost") => `<button type="button" class="${style} icon-only compact-icon-action job-action job-row-action" data-job="${this._escape(job.job_id)}" data-schedule="${this._escape(job.schedule_id||"")}" data-action="${this._escape(action)}" title="${this._escape(label)}" aria-label="${this._escape(label)}">${this._mdi(icon)}</button>`;
     const future=job?.planned_start && new Date(job.planned_start).getTime()>this._displayNow().getTime();
+    const zoneRuns=Object.values(job?.zone_runs||{});
+    const busyNow=zoneRuns.some((zone)=>String(zone?.state||"")!=="FINISHED" && (zone?.blockers||[]).includes("zone_busy"));
+    const ignoredBusy=((job?.metadata?.manual_overrides?.ignore_busy_zones)||[]).map(String).filter(Boolean);
     const scheduleAction=String(job?.origin||"")==="SCHEDULED"
       ? (job?.schedule_paused
         ? button("schedule_resume","play-circle-outline",this._tr("panel.resume_schedule"),"primary")
@@ -2623,8 +2631,11 @@ class VacuumSchedulePanel extends HTMLElement {
     const runnable=!job?.schedule_paused;
     const additional=runnable?button("additional_run", "play-box-multiple-outline", this._tr("panel.additional_run"), "primary"):"";
     const early=runnable&&future?button("start_now", "clock-fast", this._tr("panel.execute_early")):"";
+    const occupancy=job.state==="WAIT"&&runnable
+      ? `${busyNow?button("ignore_occupancy","account-alert-outline",this._tr("panel.ignore_occupancy"),"primary"):""}${ignoredBusy.length?button("respect_occupancy","account-check-outline",this._tr("panel.respect_occupancy")):""}`
+      : "";
     if (job.state === "PLANNED") return `${scheduleAction}${additional}${early}${button("skip", "skip-next-outline", this._tr("panel.skip"), "danger")}`;
-    if (job.state === "WAIT") return `${scheduleAction}${runnable?button("recheck", "refresh", this._tr("panel.recheck"), "primary"):""}${additional}${early}${button("skip", "skip-next-outline", this._tr("panel.skip"), "danger")}`;
+    if (job.state === "WAIT") return `${scheduleAction}${runnable?button("recheck", "refresh", this._tr("panel.recheck"), "primary"):""}${occupancy}${additional}${early}${button("skip", "skip-next-outline", this._tr("panel.skip"), "danger")}`;
     if (job.state === "STARTING" || job.state === "RUNNING") return scheduleAction;
     return "";
   }
@@ -5595,6 +5606,22 @@ class VacuumSchedulePanel extends HTMLElement {
         try{await this._callWs({type:"vacuum_schedule/jobs/action",entry_id:this._schedulerEntryId,job_id:el.dataset.job,action:"additional_run"});await this._load(true);this._notify(this._tr("panel.manual_job_created"));}catch(err){this._notify(this._errorText(err),"error",4200);}
         return;
       }
+      if(action==="ignore_occupancy"||action==="respect_occupancy"){
+        const found=this._jobById(el.dataset.job);
+        const busyZones=Object.values(found?.job?.zone_runs||{})
+          .filter((zone)=>String(zone?.state||"")!=="FINISHED" && (zone?.blockers||[]).includes("zone_busy"))
+          .map((zone)=>String(zone?.zone_name||zone?.zone_id||""))
+          .filter(Boolean);
+        const ignoredIds=((found?.job?.metadata?.manual_overrides?.ignore_busy_zones)||[]).map(String).filter(Boolean);
+        const ignoredZones=ignoredIds.map((id)=>{const zone=(found?.job?.zone_runs||{})[id];return String(zone?.zone_name||zone?.zone_id||id);});
+        const ignoring=action==="ignore_occupancy";
+        const title=this._tr(ignoring?"panel.ignore_occupancy":"panel.respect_occupancy");
+        const message=ignoring
+          ? this._tr("panel.ignore_occupancy_confirm",{p1:busyZones.join(", ")||this._tr("panel.occupied_zones")})
+          : this._tr("panel.respect_occupancy_confirm",{p1:ignoredZones.join(", ")||this._tr("panel.cleaning_zones")});
+        const confirmed=await this._confirmAction(title,message,title,false);
+        if(!confirmed)return;
+      }
       if(action==="start_now"||action==="start_now_ignore_busy"||action==="skip"||action==="cancel"){
         const isStart=action==="start_now"||action==="start_now_ignore_busy";
         const isSkip=action==="skip";
@@ -6229,7 +6256,7 @@ class VacuumSchedulePanel extends HTMLElement {
 }
 
 const VACUUM_SCHEDULER_PANEL_NAMES = [
-  "vacuum-schedule-panel-0133",
+  "vacuum-schedule-panel-0134",
   "vacuum-schedule-panel-0132",
   "vacuum-schedule-panel-01260",
   "vacuum-schedule-panel-01259",
