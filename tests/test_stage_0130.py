@@ -24,13 +24,13 @@ def test_release_identity_is_exact():
     manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "Vacuum Schedule"
     assert manifest["domain"] == "vacuum_schedule"
-    assert manifest["version"] == "0.13.2"
+    assert manifest["version"] == "0.13.3"
     assert manifest["documentation"] == "https://github.com/gamba69/home-assistant-vacuum-schedule"
     assert manifest["issue_tracker"] == "https://github.com/gamba69/home-assistant-vacuum-schedule/issues"
     assert manifest["codeowners"] == ["@gamba69"]
     const = (COMPONENT / "const.py").read_text(encoding="utf-8")
     assert 'DOMAIN: Final = "vacuum_schedule"' in const
-    assert 'VERSION: Final = "0.13.2"' in const
+    assert 'VERSION: Final = "0.13.3"' in const
 
 
 def test_repository_has_exactly_one_hacs_integration_directory():

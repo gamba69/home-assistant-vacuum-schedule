@@ -10,8 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "custom_components" / "vacuum_schedule"
-EXPECTED_VERSION = "0.13.2"
-EXPECTED_COMPONENT = "vacuum-schedule-panel-0132"
+EXPECTED_VERSION = "0.13.3"
+EXPECTED_COMPONENT = "vacuum-schedule-panel-0133"
 
 
 def test_release_metadata_is_consistent():

@@ -161,7 +161,7 @@ class VacuumSchedulePanel extends HTMLElement {
   async _loadTranslationCatalog(language) {
     const lang = ["ru", "uk", "en"].includes(String(language)) ? String(language) : "en";
     if (VACUUM_SCHEDULER_LOCALIZATION_CACHE.has(lang)) return VACUUM_SCHEDULER_LOCALIZATION_CACHE.get(lang);
-    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.2`, { cache: "no-cache" });
+    const response = await fetch(`/vacuum_schedule_frontend/localization/${lang}.json?v=0.13.3`, { cache: "no-cache" });
     if (!response.ok) throw new Error(`localization_${lang}_${response.status}`);
     const catalog = await response.json();
     VACUUM_SCHEDULER_LOCALIZATION_CACHE.set(lang, catalog);
@@ -2167,6 +2167,46 @@ class VacuumSchedulePanel extends HTMLElement {
     return `<div class="history-comparison"><div class="history-report-section-head"><div><h4>${this._tr("panel.historical_comparison")}</h4><span>${this._escape(this._historyComparisonBasisLabel(comparison.basis))} · ${this._tr("panel.previous_runs_count",{count:comparison.sample_count})}</span></div></div><div class="table-wrap"><table class="mobile-card-table history-comparison-table"><thead><tr><th>${this._tr("panel.metric")}</th><th class="metric-header">${this._tr("panel.this_run")}</th><th class="metric-header">${this._tr("panel.typical_value")}</th><th class="metric-header">${this._tr("panel.deviation")}</th><th class="metric-header">${this._tr("panel.percentile")}</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`;
   }
 
+  _historySpecificResourceReason(job) {
+    const accepted=new Set(["clean_water_insufficient","dirty_water_full","detergent_unavailable"]);
+    const candidates=[];
+    const add=(values)=>{for(const value of (Array.isArray(values)?values:[])){const code=String(value||"");if(accepted.has(code))candidates.push(code);}};
+    add(job?.current_blockers); add(job?.blockers);
+    for(const zone of Object.values(job?.zone_runs||{})){add(zone?.blockers);if(accepted.has(String(zone?.reason_code||"")))candidates.push(String(zone.reason_code));}
+    for(const attempt of Object.values(job?.execution_attempts||{})){
+      const meta=attempt?.metadata||{};
+      add(meta.resource_blockers);
+      for(const key of ["runtime_error_timeout_observation","resource_blocked_observation","last_observation","start_observation"])add(meta?.[key]?.resource_blockers);
+      const observations=Array.isArray(meta.statistics_observations)?meta.statistics_observations:[];
+      for(let i=observations.length-1;i>=0;i--)add(observations[i]?.resource_blockers);
+    }
+    const events=Array.isArray(job?.lifecycle_events)?job.lifecycle_events:[];
+    for(let i=events.length-1;i>=0;i--){add(events[i]?.current_blockers);add(events[i]?.blockers);}
+    return candidates[0]||null;
+  }
+
+  _historyDisplayReason(job) {
+    const original=String(job?.reason_code||"");
+    const specific=this._historySpecificResourceReason(job);
+    const generic=new Set(["vacuum_error","execution_failed","robot_error_recovery_timeout","resource_blocked_until_deadline","no_zone_succeeded","preflight_failed"]);
+    return specific && (!original || generic.has(original)) ? specific : (original||specific||"");
+  }
+
+  _historyReasonLabel(reason) {
+    const code=String(reason||"");
+    const key={clean_water_insufficient:"panel.clean_water_empty",dirty_water_full:"panel.dirty_water_full",detergent_unavailable:"panel.detergent_unavailable"}[code];
+    return key?this._tr(key):this._reasonLabel(code);
+  }
+
+  _historyFailureExplanation(reason) {
+    const code=String(reason||"");
+    const key=`panel.failure_explanation.${code}`;
+    const translated=this._tr(key);
+    if(translated!==key)return translated;
+    if(["vacuum_error","execution_failed","robot_error_recovery_timeout","no_zone_succeeded","preflight_failed"].includes(code))return this._tr("panel.failure_explanation.unknown");
+    return "";
+  }
+
   _historySummaryReportHtml(job,context) {
     const record=context?.record||{}; const water=context?.water_usage||{};
     const external=this._historySource(job)==="EXTERNAL";
@@ -2177,9 +2217,11 @@ class VacuumSchedulePanel extends HTMLElement {
     const cleanWater=water.clean_used_ml_eq;
     const waterComplete=water.complete!==false;
     const timeline=(external?[job.actual_start?`${this._tr("panel.started_short")}: ${this._formatDateTime(job.actual_start)}`:"",job.finished_at?`${this._tr("panel.finished_short")}: ${this._formatDateTime(job.finished_at)}`:""]:[`${this._tr("panel.plan_short")}: ${this._formatDateTime(job.planned_start)}`,job.actual_start?`${this._tr("panel.started_short")}: ${this._formatDateTime(job.actual_start)}`:"",job.finished_at?`${this._tr("panel.finished_short")}: ${this._formatDateTime(job.finished_at)}`:""]).filter(Boolean).join(" → ");
+    const displayReason=this._historyDisplayReason(job);
+    const failureExplanation=["SUCCESS","SUPPRESSED"].includes(String(job?.result||"").toUpperCase())?"":this._historyFailureExplanation(displayReason);
     return `<div class="history-report-pane history-report-summary">
       <div class="history-primary-metrics">
-        <div><span>${this._tr("panel.result")}</span><b>${this._historyResultHtml(job.result)}</b><small>${this._escape(this._reasonLabel(job.reason_code))}</small></div>
+        <div><span>${this._tr("panel.result")}</span><b>${this._historyResultHtml(job.result)}</b><small>${this._escape(this._historyReasonLabel(displayReason))}</small>${failureExplanation?`<small>${this._escape(failureExplanation)}</small>`:""}</div>
         <div><span>${this._tr("panel.physical_execution_time")}</span><b>${this._historyDurationValue(physical,true)}</b><small>${job.execution_mode==="REAL"?this._tr("panel.execution_real"):this._tr("panel.execution_dry_run")}</small></div>
         ${external?`<div><span>${this._tr("panel.source")}</span><b>${this._tr("panel.source_external")}</b><small>${this._tr("panel.external_observed_run")}</small></div>`:`<div><span>${this._tr("panel.start_delay")}</span><b>${this._historyDurationValue(delay,true)}</b><small>${this._tr("panel.relative_to_plan")}</small></div>`}
         <div><span>${this._tr("panel.physical_area")}</span><b>${this._historyNumberValue(area,1," m²")}</b><small>${this._escape(record.area?.source==="robot_observation"?this._tr("panel.measured_by_robot"):this._tr("panel.data_unavailable"))}</small></div>
@@ -3065,7 +3107,7 @@ class VacuumSchedulePanel extends HTMLElement {
       const profile=this._historyCleaningProfileText(job)||"—";
       const duration=this._formatDurationSeconds(this._historyPhysicalDurationSeconds(job));
       const result=this._resultLabel(job.result);
-      const reason=this._historyResultCategory(job)==="success"?"—":this._reasonLabel(job.reason_code);
+      const reason=this._historyResultCategory(job)==="success"?"—":this._historyReasonLabel(this._historyDisplayReason(job));
       return `<details class="job-card history-job-card" data-history-job-id="${this._escape(id)}" ${open?"open":""}><summary class="history-job-summary"><span data-label="${this._tr("panel.completed")}"><span class="history-cell-value" title="${this._escape(completed)}">${this._escape(completed)}</span></span><span class="job-name" data-label="${this._tr("panel.schedule")}"><span class="history-cell-value" title="${this._escape(name)}">${this._escape(name)}</span></span><span class="history-source-cell" data-label="${this._tr("panel.source")}"><span class="history-cell-value" title="${this._escape(source)}">${this._escape(source)}</span></span><span data-label="${this._tr("panel.execution_mode")}"><span class="history-cell-value" title="${this._escape(execution)}">${this._historyExecutionModeHtml(job.execution_mode)}</span></span><span data-label="${this._tr("panel.cleaning_profile_used")}"><span class="history-cell-value history-cleaning-profile" title="${this._escape(profile)}">${this._escape(profile)}</span></span><span class="history-physical-duration" data-label="${this._tr("panel.duration")}"><span class="history-cell-value" title="${this._escape(duration)}">${this._escape(duration)}</span></span><span data-label="${this._tr("panel.result")}"><span class="history-cell-value" title="${this._escape(result)}">${this._historyResultHtml(job.result)}</span></span><span data-label="${this._tr("panel.reason")}"><span class="history-cell-value" title="${this._escape(reason)}">${this._escape(reason)}</span></span></summary>${body}</details>`;
     }).join("");
     return rows.length?`<div class="history-job-list">${header}${cards}</div>`:`<div class="empty">${this._tr("panel.no_jobs_match_filters")}</div>`;
@@ -4353,7 +4395,9 @@ class VacuumSchedulePanel extends HTMLElement {
   _maintenanceActionLabel(tank, interpretation) {
     const action=String(interpretation?.action||"");
     const value=interpretation?.value;
-    const key={full:"panel.service_full",empty:"panel.service_empty",level:"panel.service_level",add_ml:"panel.service_add_ml",remove_ml:"panel.service_remove_ml",noop:"panel.service_noop",unknown:"panel.service_unknown"}[action];
+    const key=action==="level"
+      ? (tank==="clean"?"panel.service_clean_level":"panel.service_dirty_level")
+      : {full:"panel.service_full",empty:"panel.service_empty",add_ml:"panel.service_add_ml",remove_ml:"panel.service_remove_ml",noop:"panel.service_noop",unknown:"panel.service_unknown"}[action];
     if(!key)return "—";
     return this._tr(key,{value:value??"—"});
   }
@@ -4386,9 +4430,9 @@ class VacuumSchedulePanel extends HTMLElement {
     const pendingSessions=m.pending_sessions||[]; const pendingTanks=new Set(pendingSessions.flatMap(session=>this._maintenanceTanks(session)));
     const pending=Number(summary.pending_count||pendingSessions.length||0);
     const cleanValue=pendingTanks.has("clean")?this._tr("panel.pending"):percent(clean.remaining_percent);
-    const dirtyValue=pendingTanks.has("dirty")?this._tr("panel.pending"):percent(dirty.free_percent);
+    const dirtyValue=pendingTanks.has("dirty")?this._tr("panel.pending"):percent(dirty.filled_percent);
     return `<section class="entry-card maintenance-status-card"><div class="entry-header"><div><h2>${this._tr("panel.maintenance")}</h2><div class="muted">${this._tr("panel.maintenance_status_help")}</div></div><div class="button-row"><button type="button" class="ghost maintenance-add">${this._mdi("plus")}<span>${this._tr("panel.add_maintenance")}</span></button><button type="button" class="primary maintenance-open">${this._mdi("tools")}<span>${this._tr("panel.open_maintenance")}</span></button></div></div>
-      <div class="maintenance-status-grid"><div><span>${this._tr("panel.clean_water_remaining_short")}</span><b>${cleanValue}</b></div><div><span>${this._tr("panel.dirty_water_free_short")}</span><b>${dirtyValue}</b></div><div class="${pending?"maintenance-attention":""}"><span>${this._tr("panel.maintenance_requires_confirmation")}</span><b>${pending}</b></div><div><span>${this._tr("panel.last_maintenance")}</span><b>${summary.last_service_at?this._formatDateTime(summary.last_service_at):this._tr("panel.no_maintenance_yet")}</b></div></div>
+      <div class="maintenance-status-grid"><div><span>${this._tr("panel.clean_water_remaining_short")}</span><b>${cleanValue}</b></div><div><span>${this._tr("panel.dirty_water_filled_short")}</span><b>${dirtyValue}</b></div><div class="${pending?"maintenance-attention":""}"><span>${this._tr("panel.maintenance_requires_confirmation")}</span><b>${pending}</b></div><div><span>${this._tr("panel.last_maintenance")}</span><b>${summary.last_service_at?this._formatDateTime(summary.last_service_at):this._tr("panel.no_maintenance_yet")}</b></div></div>
     </section>`;
   }
 
@@ -4411,7 +4455,7 @@ class VacuumSchedulePanel extends HTMLElement {
     if(allowNone)rows.push(["__none__",this._tr("panel.no_action_for_tank")]);
     if(tank==="clean") rows.push(["full",this._tr("panel.filled_completely")],["add_ml",this._tr("panel.added_partial_water")]);
     else rows.push(["empty",this._tr("panel.emptied_completely")],["remove_ml",this._tr("panel.drained_partial_water")]);
-    rows.push(["level",this._tr("panel.set_approximate_level")],["noop",this._tr("panel.just_removed_reinserted")],["unknown",this._tr("panel.unknown_service_action")]);
+    rows.push(["level",this._tr(tank==="clean"?"panel.set_clean_remaining":"panel.set_dirty_filled")],["noop",this._tr("panel.just_removed_reinserted")],["unknown",this._tr("panel.unknown_service_action")]);
     return rows.map(([value,label])=>`<option value="${value}" ${selected===value?"selected":""}>${this._escape(label)}</option>`).join("");
   }
 
@@ -4423,8 +4467,9 @@ class VacuumSchedulePanel extends HTMLElement {
       const item=draft.values[tank]||{action:"__none__",value:""};
       const required=draft.source==="detected"&&detected.has(tank);
       const needsValue=["level","add_ml","remove_ml"].includes(item.action);
-      const label=item.action==="level"?this._tr("panel.level_percent"):this._tr("panel.volume_ml");
-      return `<div class="maintenance-tank-editor"><div class="maintenance-tank-head"><b>${this._escape(this._maintenanceTankLabel(tank))}</b>${required?`<span class="plain-status warning-text">${this._tr("panel.maintenance_requires_confirmation")}</span>`:""}</div><label><span>${this._tr("panel.maintenance_interpretation")}</span><select data-maintenance-action="${tank}">${this._maintenanceActionOptions(tank,item.action,!required)}</select></label>${needsValue?`<label><span>${label}</span><input type="number" min="${item.action==="level"?"0":"1"}" max="${item.action==="level"?"100":""}" value="${this._escape(item.value)}" data-maintenance-value="${tank}"></label>`:""}</div>`;
+      const label=item.action==="level"?this._tr(tank==="clean"?"panel.clean_water_remaining_percent":"panel.dirty_water_filled_percent"):this._tr("panel.volume_ml");
+      const levelHelp=item.action==="level"?this._tr(tank==="clean"?"panel.clean_level_percent_help":"panel.dirty_level_percent_help"):"";
+      return `<div class="maintenance-tank-editor"><div class="maintenance-tank-head"><b>${this._escape(this._maintenanceTankLabel(tank))}</b>${required?`<span class="plain-status warning-text">${this._tr("panel.maintenance_requires_confirmation")}</span>`:""}</div><label><span>${this._tr("panel.maintenance_interpretation")}</span><select data-maintenance-action="${tank}">${this._maintenanceActionOptions(tank,item.action,!required)}</select></label>${needsValue?`<label><span>${label}</span><input type="number" min="${item.action==="level"?"0":"1"}" max="${item.action==="level"?"100":""}" value="${this._escape(item.value)}" data-maintenance-value="${tank}">${levelHelp?`<small class="muted">${this._escape(levelHelp)}</small>`:""}</label>`:""}</div>`;
     };
     const revising=draft.session?.status==="confirmed";
     const title=draft.session_id?(revising?this._tr("panel.edit_maintenance"):this._tr("panel.confirm_maintenance")):this._tr("panel.add_maintenance");
@@ -4444,8 +4489,8 @@ class VacuumSchedulePanel extends HTMLElement {
     const clean=data.clean||{}; const dirty=data.dirty||{}; const fmt=v=>Number.isFinite(Number(v))?`${Math.round(Number(v))}%`:"—";
     const pendingTanks=new Set(pending.flatMap(session=>this._maintenanceTanks(session)));
     const cleanValue=pendingTanks.has("clean")?this._tr("panel.pending"):fmt(clean.remaining_percent);
-    const dirtyValue=pendingTanks.has("dirty")?this._tr("panel.pending"):fmt(dirty.free_percent);
-    return `${this._entrySelectorHtml()}<div class="maintenance-page-head"><button type="button" class="ghost maintenance-back">${this._mdi("arrow-left")}<span>${this._tr("panel.back_to_status")}</span></button><button type="button" class="primary maintenance-add">${this._mdi("plus")}<span>${this._tr("panel.add_maintenance")}</span></button></div>${this._maintenanceEditorHtml()}<section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.current_water_state")}</h2></div></div><div class="summary-grid"><div class="summary-card"><span>${this._tr("panel.clean_water_remaining_short")}</span><b>${cleanValue}</b></div><div class="summary-card"><span>${this._tr("panel.dirty_water_free_short")}</span><b>${dirtyValue}</b></div><div class="summary-card"><span>${this._tr("panel.maintenance_requires_confirmation")}</span><b>${pending.length}</b></div><div class="summary-card"><span>${this._tr("panel.last_maintenance")}</span><b>${data.summary?.last_service_at?this._formatDateTime(data.summary.last_service_at):"—"}</b></div></div></section><section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.pending_maintenance")}</h2><div class="muted">${this._tr("panel.maintenance_pending_help")}</div></div></div>${pending.length?`<div class="maintenance-list">${pending.map(s=>this._maintenanceSessionCardHtml(s,true)).join("")}</div>`:`<div class="empty compact">${this._tr("panel.no_pending_maintenance")}</div>`}</section><section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.maintenance_history")}</h2><div class="muted">${this._tr("panel.maintenance_history_help")}</div></div></div>${confirmed.length?`<div class="maintenance-list">${confirmed.map(s=>this._maintenanceSessionCardHtml(s,false)).join("")}</div>`:`<div class="empty compact">${this._tr("panel.no_maintenance_history")}</div>`}</section>`;
+    const dirtyValue=pendingTanks.has("dirty")?this._tr("panel.pending"):fmt(dirty.filled_percent);
+    return `${this._entrySelectorHtml()}<div class="maintenance-page-head"><button type="button" class="ghost maintenance-back">${this._mdi("arrow-left")}<span>${this._tr("panel.back_to_status")}</span></button><button type="button" class="primary maintenance-add">${this._mdi("plus")}<span>${this._tr("panel.add_maintenance")}</span></button></div>${this._maintenanceEditorHtml()}<section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.current_water_state")}</h2></div></div><div class="summary-grid"><div class="summary-card"><span>${this._tr("panel.clean_water_remaining_short")}</span><b>${cleanValue}</b></div><div class="summary-card"><span>${this._tr("panel.dirty_water_filled_short")}</span><b>${dirtyValue}</b></div><div class="summary-card"><span>${this._tr("panel.maintenance_requires_confirmation")}</span><b>${pending.length}</b></div><div class="summary-card"><span>${this._tr("panel.last_maintenance")}</span><b>${data.summary?.last_service_at?this._formatDateTime(data.summary.last_service_at):"—"}</b></div></div></section><section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.pending_maintenance")}</h2><div class="muted">${this._tr("panel.maintenance_pending_help")}</div></div></div>${pending.length?`<div class="maintenance-list">${pending.map(s=>this._maintenanceSessionCardHtml(s,true)).join("")}</div>`:`<div class="empty compact">${this._tr("panel.no_pending_maintenance")}</div>`}</section><section class="entry-card"><div class="entry-header"><div><h2>${this._tr("panel.maintenance_history")}</h2><div class="muted">${this._tr("panel.maintenance_history_help")}</div></div></div>${confirmed.length?`<div class="maintenance-list">${confirmed.map(s=>this._maintenanceSessionCardHtml(s,false)).join("")}</div>`:`<div class="empty compact">${this._tr("panel.no_maintenance_history")}</div>`}</section>`;
   }
 
   _statisticsWaterHtml(water,fmt,aggregate={}) {
@@ -5619,7 +5664,7 @@ class VacuumSchedulePanel extends HTMLElement {
     this.shadowRoot.querySelectorAll("button.forecast-restore-archive").forEach(btn=>btn.addEventListener("click",async()=>{const confirmed=await this._confirmAction(this._tr("panel.restore_model_archive"),this._tr("panel.restore_model_archive_confirm"),this._tr("panel.restore"),false);if(!confirmed)return;try{await this._callWs({type:"vacuum_schedule/statistics/forecast/restore_archive",entry_id:this._schedulerEntryId,metric:btn.dataset.metric,archive_id:btn.dataset.archiveId});await this._loadForecast(false);this._render();this._notify(this._tr("panel.model_archive_restored"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
     this.shadowRoot.querySelectorAll("button.forecast-delete-archive").forEach(btn=>btn.addEventListener("click",async()=>{const confirmed=await this._confirmAction(this._tr("panel.delete_model_archive"),this._tr("panel.delete_model_archive_confirm"),this._tr("panel.delete"),true);if(!confirmed)return;try{await this._callWs({type:"vacuum_schedule/statistics/forecast/delete_archive",entry_id:this._schedulerEntryId,metric:btn.dataset.metric,archive_id:btn.dataset.archiveId});await this._loadForecast(false);this._render();this._notify(this._tr("panel.deleted"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
     this.shadowRoot.querySelectorAll("button.water-service").forEach(btn=>btn.addEventListener("click",async()=>{try{await this._callWs({type:"vacuum_schedule/statistics/water_service",entry_id:this._schedulerEntryId,tank:btn.dataset.tank,action:btn.dataset.action,...(btn.dataset.pending?{pending_id:btn.dataset.pending}:{})});await Promise.all([this._loadStatistics(false),this._loadSettings(false)]);this._render();this._notify(this._tr("panel.water_service_saved"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
-    this.shadowRoot.querySelectorAll("button.water-service-level").forEach(btn=>btn.addEventListener("click",async()=>{const raw=await this._promptAction(this._tr("panel.enter_tank_level_percent"),"",{label:"%",value:"50",type:"number",min:"0",max:"100",confirmLabel:this._tr("panel.save")});if(raw===null)return;const value=Number(raw);if(!Number.isFinite(value)||value<0||value>100){this._notify(this._tr("panel.invalid_percent"),"error",4200);return;}try{await this._callWs({type:"vacuum_schedule/statistics/water_service",entry_id:this._schedulerEntryId,tank:btn.dataset.tank,action:"level",value,...(btn.dataset.pending?{pending_id:btn.dataset.pending}:{})});await Promise.all([this._loadStatistics(false),this._loadSettings(false)]);this._render();this._notify(this._tr("panel.water_service_saved"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
+    this.shadowRoot.querySelectorAll("button.water-service-level").forEach(btn=>btn.addEventListener("click",async()=>{const raw=await this._promptAction(this._tr(btn.dataset.tank==="dirty"?"panel.dirty_water_filled_percent":"panel.clean_water_remaining_percent"),this._tr(btn.dataset.tank==="dirty"?"panel.dirty_level_percent_help":"panel.clean_level_percent_help"),{label:"%",value:"50",type:"number",min:"0",max:"100",confirmLabel:this._tr("panel.save")});if(raw===null)return;const value=Number(raw);if(!Number.isFinite(value)||value<0||value>100){this._notify(this._tr("panel.invalid_percent"),"error",4200);return;}try{await this._callWs({type:"vacuum_schedule/statistics/water_service",entry_id:this._schedulerEntryId,tank:btn.dataset.tank,action:"level",value,...(btn.dataset.pending?{pending_id:btn.dataset.pending}:{})});await Promise.all([this._loadStatistics(false),this._loadSettings(false)]);this._render();this._notify(this._tr("panel.water_service_saved"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
     this.shadowRoot.querySelectorAll("button.water-service-volume").forEach(btn=>btn.addEventListener("click",async()=>{const raw=await this._promptAction(this._tr("panel.enter_volume_ml"),"",{label:"ml",value:"500",type:"number",min:"1",confirmLabel:this._tr("panel.save")});if(raw===null)return;const value=Number(raw);if(!Number.isFinite(value)||value<=0){this._notify(this._tr("panel.invalid_volume"),"error",4200);return;}try{await this._callWs({type:"vacuum_schedule/statistics/water_service",entry_id:this._schedulerEntryId,tank:btn.dataset.tank,action:btn.dataset.action,value,...(btn.dataset.pending?{pending_id:btn.dataset.pending}:{})});await Promise.all([this._loadStatistics(false),this._loadSettings(false)]);this._render();this._notify(this._tr("panel.water_service_saved"));}catch(err){this._notify(this._errorText(err),"error",4200);}}));
     this.shadowRoot.querySelectorAll("button[data-active-job-tab]").forEach((button)=>button.addEventListener("click",()=>{const id=String(button.dataset.activeJobTabJob||"");if(id){this._activeJobTab.set(id,button.dataset.activeJobTab||"now");this._activeJobOpen.add(id);}this._render();}));
     this.shadowRoot.querySelectorAll("details.active-job-card").forEach((el)=>el.addEventListener("toggle",()=>{const id=String(el.dataset.jobId||"");if(!id)return;if(el.open){this._activeJobOpen.add(id);void this._loadActiveJobDetails(id,false,true);}else this._activeJobOpen.delete(id);}));
@@ -6184,6 +6229,7 @@ class VacuumSchedulePanel extends HTMLElement {
 }
 
 const VACUUM_SCHEDULER_PANEL_NAMES = [
+  "vacuum-schedule-panel-0133",
   "vacuum-schedule-panel-0132",
   "vacuum-schedule-panel-01260",
   "vacuum-schedule-panel-01259",

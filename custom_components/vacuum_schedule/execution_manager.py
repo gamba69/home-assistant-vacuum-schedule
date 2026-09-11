@@ -48,6 +48,18 @@ _RETRYABLE_PRECOMMAND_WAIT_REASONS = frozenset({
     "detergent_unavailable",
 })
 
+_ACTIONABLE_RESOURCE_FAILURE_REASONS = frozenset({
+    "clean_water_insufficient",
+    "dirty_water_full",
+    "detergent_unavailable",
+})
+_GENERIC_EXECUTION_FAILURE_REASONS = frozenset({
+    None,
+    JobReason.EXECUTION_FAILED.value,
+    JobReason.ROBOT_ERROR_RECOVERY_TIMEOUT.value,
+    JobReason.RESOURCE_BLOCKED_UNTIL_DEADLINE.value,
+})
+
 
 class ExecutionManager:
     """Bridge business zone lifecycles to one of the execution backends."""
@@ -286,6 +298,39 @@ class ExecutionManager:
             return False
         return await self._start_attempt(job, attempt, now)
 
+    @staticmethod
+    def _resolved_attempt_failure_reason(attempt: ExecutionAttempt) -> str:
+        """Prefer an observed dock-resource cause over a generic execution error.
+
+        The physical backend deliberately keeps its stable technical failure code
+        on the attempt.  Job/zone history, however, should tell the user the
+        actionable cause when the same terminal attempt carries authoritative
+        water/detergent blocker evidence.
+        """
+        fallback = attempt.failure_reason or JobReason.EXECUTION_FAILED.value
+        if attempt.failure_reason not in _GENERIC_EXECUTION_FAILURE_REASONS:
+            return fallback
+
+        metadata = attempt.metadata if isinstance(attempt.metadata, dict) else {}
+        observations = [
+            metadata.get("runtime_error_timeout_observation"),
+            metadata.get("resource_blocked_observation"),
+            metadata.get("last_observation"),
+            metadata.get("start_observation"),
+        ]
+        candidates = []
+        for observation in observations:
+            if isinstance(observation, dict):
+                candidates.extend(observation.get("resource_blockers") or ())
+        candidates.extend(metadata.get("resource_blockers") or ())
+        for reason in candidates:
+            code = str(reason or "")
+            if code in _ACTIONABLE_RESOURCE_FAILURE_REASONS:
+                metadata["resolved_failure_reason"] = code
+                metadata.setdefault("technical_failure_reason", fallback)
+                return code
+        return fallback
+
     def _sync_attempt_to_zones(self, job: JobInstance, attempt: ExecutionAttempt, now: datetime) -> bool:
         changed = False
         for zone_id in attempt.zone_ids:
@@ -326,7 +371,7 @@ class ExecutionManager:
             elif attempt.state is ExecutionAttemptState.FAILED:
                 changed |= zone.finish(
                     ZoneResult.FAILED,
-                    attempt.failure_reason or JobReason.EXECUTION_FAILED.value,
+                    self._resolved_attempt_failure_reason(attempt),
                     attempt.completed_at or now,
                 )
         return changed

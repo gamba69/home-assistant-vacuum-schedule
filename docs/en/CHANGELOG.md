@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.3
+
+- Improved failed-execution history so generic physical failures resolve to a confirmed clean-water, dirty-water or detergent cause when the robot/dock observation contains authoritative resource evidence; the original technical failure code is retained in attempt metadata.
+- Clarified manual water-level corrections: clean-water percentage now means remaining amount, while dirty-water percentage means tank fill, with explicit 0%/100% hints.
+- Updated maintenance history/current-state wording and synchronized EN/RU/UK frontend localization for the new water semantics and failure explanations.
+- Bumped the integration version and frontend cache/component identity to 0.13.3.
+- Release verification: **993 tests passed**, Python compile, frontend JavaScript syntax, JSON/YAML validation and diff checks passed.
+
 ## 0.13.2
 
 - Fixed hassfest manifest key ordering.

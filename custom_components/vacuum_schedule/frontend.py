@@ -93,7 +93,7 @@ from .planner import OccurrencePlanner
 from .schedule import ScheduleDefinition, ScheduleValidationError
 from .notification_models import NotificationEventType, normalize_notification_settings
 
-PANEL_COMPONENT = "vacuum-schedule-panel-0132"
+PANEL_COMPONENT = "vacuum-schedule-panel-0133"
 # Legacy browser-cache component name: vacuum-schedule-panel-0635
 PANEL_URL_PATH = "vacuum-schedule"
 FRONTEND_BASE_URL = "/vacuum_schedule_frontend"
