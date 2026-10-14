@@ -38,6 +38,7 @@ from .force_conditions import ForceConditionEngine, force_dependencies, select_f
 from .schedule_refresh import select_schedule_refresh_occurrence
 from .migrations import migrate_pre_071_runtime_state, migrate_pre_074_materialization
 from .external_execution import ExternalExecutionTracker
+from .execution_observer import RobotExecutionPhase
 from .force_protection import (
     DEFAULT_SAFETY_BUFFER_SECONDS,
     DEFAULT_UNKNOWN_DURATION_MIN_GAP_SECONDS,
@@ -92,6 +93,10 @@ class SchedulerEngine:
             hass, self.entry_id, self.execution.real.adapter
         )
         self.dependency_index = DependencyIndex(hass, self.async_recheck_jobs)
+        self.execution.real.power_guard = self._power_allows_start
+        self._power_emergency_task: asyncio.Task[Any] | None = None
+        self._power_emergency_latched = False
+        self._power_last_emergency_at: datetime | None = None
         self._lock = asyncio.Lock()
         self._timer_unsubs: list[Callable[[], None]] = []
         self._watchdog_unsub: Callable[[], None] | None = None
@@ -181,6 +186,7 @@ class SchedulerEngine:
         self._subscribe_zone_inputs()
         self._subscribe_force_inputs()
         self._subscribe_notification_actions()
+        self._request_power_emergency()
         # Only after the recovery barrier may normal scheduling start a current
         # still-valid occurrence, deliver notifications, and arm timers.
         await self.async_reconcile()
@@ -194,6 +200,9 @@ class SchedulerEngine:
             return
         self._started = False
         self._zone_reconcile_requested = False
+        if self._power_emergency_task is not None:
+            self._power_emergency_task.cancel()
+            self._power_emergency_task = None
         self._clear_timers()
         if self._watchdog_unsub is not None:
             self._watchdog_unsub()
@@ -520,11 +529,113 @@ class SchedulerEngine:
 
         @callback
         def _zone_input_changed(_event: Any) -> None:
+            self._request_power_emergency()
             self._request_zone_reconcile()
 
         self._zone_input_unsub = async_track_state_change_event(
             self.hass, entity_ids, _zone_input_changed
         )
+
+    def _power_allows_start(self) -> bool:
+        """Use only LIVE HA mains state to guard physical start commands."""
+        if not self.input_provider.policy.power_monitor_enabled:
+            return True
+        reading = self.input_provider.power_input(allow_test_overrides=False)
+        return reading.effective_available and reading.effective_value is True
+
+    @callback
+    def _request_power_emergency(self) -> None:
+        """Start emergency control without waiting for the scheduler lease lock."""
+        if not self._started or self.execution_mode is not ExecutionMode.REAL:
+            return
+        reading = self.input_provider.power_input(allow_test_overrides=False)
+        if reading.effective_value is True and reading.effective_available:
+            self._power_emergency_latched = False
+            return
+        if reading.effective_value is not False or not reading.effective_available:
+            return
+        try:
+            observation = self.execution.real.adapter.observe(self.clock.now())
+        except Exception:
+            observation = None
+        owned = any(
+            attempt.execution_mode is ExecutionMode.REAL
+            for job in self.store.active.values()
+            for attempt in self.execution.active_attempts(job)
+        )
+        active = (
+            owned or self.external_execution.active
+            or (observation is not None and (
+                observation.session_active or observation.phase in {
+                    RobotExecutionPhase.CLEANING, RobotExecutionPhase.PAUSED,
+                    RobotExecutionPhase.SERVICE, RobotExecutionPhase.SERVICE_BLOCKED,
+                }
+            ))
+        )
+        if not active:
+            self._power_emergency_latched = False
+            return
+        now = self.clock.now()
+        if self._power_emergency_latched:
+            # Repeating stop while the robot is RETURNING would prevent the
+            # very return-to-base operation the emergency requested.
+            if observation is not None and observation.phase in {
+                RobotExecutionPhase.RETURNING,
+                RobotExecutionPhase.SERVICE,
+                RobotExecutionPhase.SERVICE_BLOCKED,
+                RobotExecutionPhase.IDLE,
+            }:
+                return
+            if self._power_last_emergency_at is not None and not instant_ge(
+                now, instant_add(self._power_last_emergency_at, timedelta(seconds=30))
+            ):
+                return
+        if self._power_emergency_task is not None and not self._power_emergency_task.done():
+            return
+        self._power_emergency_latched = True
+        self._power_last_emergency_at = now
+        self._power_emergency_task = self.hass.async_create_task(self._async_emergency_power_loss(now))
+
+    async def _async_emergency_power_loss(self, now: datetime) -> None:
+        """Best-effort stop and dock for ANY active REAL cleaning session."""
+        reason = JobReason.POWER_SUPPLY_LOST.value
+        owned = False
+        for job in self.store.active.values():
+            for attempt in self.execution.active_attempts(job):
+                if attempt.execution_mode is not ExecutionMode.REAL:
+                    continue
+                owned = True
+                job.metadata.setdefault("power_interrupted_at", now.isoformat())
+                attempt.metadata["cancel_reason"] = reason
+                attempt.metadata.setdefault("power_interrupted_at", now.isoformat())
+                attempt.state = ExecutionAttemptState.CANCEL_REQUESTED
+                if attempt.cancel_requested_at is None:
+                    attempt.cancel_requested_at = now
+                attempt.metadata["return_home_requested"] = True
+        if not owned:
+            try:
+                self.external_execution.mark_power_interruption(now)
+            except Exception:
+                # An observer failure must never prevent emergency commands.
+                pass
+        command_results: dict[str, str] = {}
+        for name, command in (
+            ("stop", self.execution.real.adapter.async_stop),
+            ("return_to_base", self.execution.real.adapter.async_return_home),
+        ):
+            try:
+                await asyncio.wait_for(command(), timeout=8)
+                command_results[name] = "requested"
+            except Exception as err:
+                command_results[name] = f"failed:{type(err).__name__}"
+        for job in self.store.active.values():
+            if job.metadata.get("power_interrupted_at") == now.isoformat():
+                job.metadata["power_emergency_commands"] = dict(command_results)
+                self.store.append_event(job, "power_supply_lost", now, details=command_results)
+        if not owned:
+            await self.external_execution.async_save_pending()
+        await self.store.async_save()
+        await self.async_reconcile()
 
     @callback
     def _request_zone_reconcile(self) -> None:
@@ -1100,6 +1211,7 @@ class SchedulerEngine:
                     for zone in job.zone_runs.values()
                     if zone.result is not ZoneResult.SUCCESS
                     and zone.reason_code in {
+                        JobReason.POWER_SUPPLY_LOST.value,
                         JobReason.USER_CANCELLED.value,
                         JobReason.USER_SKIPPED.value,
                         JobReason.SCHEDULE_DISABLED_BY_USER.value,
@@ -1209,6 +1321,14 @@ class SchedulerEngine:
         changed |= await self.execution.async_progress_job(job, now)
         if self._aggregate_job_if_complete(job, now):
             return True, ()
+        if job.metadata.get("power_interrupted_at"):
+            # Power interruption is terminal for this occurrence. Never start
+            # remaining zones or subsequent emulated passes after restoration.
+            if any(not attempt.terminal for attempt in job.execution_attempts.values()):
+                return changed, ()
+            changed |= self._finish_remaining_zones(job, JobReason.POWER_SUPPLY_LOST.value, now)
+            changed |= self._aggregate_job_if_complete(job, now)
+            return changed, ()
 
         # 0.11.9: the global execution gate is an administrative suppression,
         # not a failed pre-flight.  Variant B semantics: if the automatic
@@ -2335,6 +2455,7 @@ class SchedulerEngine:
             return
         async with self._lock:
             now = self.clock.now()
+            self._request_power_emergency()
             planner = OccurrencePlanner(self.hass.config.time_zone)
             schedules = self._schedules()
             by_id = {item.schedule_id: item for item in schedules}
@@ -2423,6 +2544,7 @@ class SchedulerEngine:
         if self.execution_mode is ExecutionMode.REAL and self.clock.offset.total_seconds():
             self.clock.reset()
         self._subscribe_zone_inputs()
+        self._request_power_emergency()
         # Force dependencies belong to the editable Schedule definition. A
         # changed person/entity set must replace the previous listener before
         # the following reconcile evaluates the new condition snapshot.
@@ -4235,6 +4357,7 @@ class SchedulerEngine:
             "clock": self.clock.as_dict(),
             "next_transition": next_transition.isoformat() if next_transition else None,
             "robot_status": self._robot_status_payload(now),
+            "power_supply": self.input_provider.power_input(allow_test_overrides=self.execution_mode is ExecutionMode.DRY_RUN).to_dict(),
             "active_jobs": [self._job_status_dict(item, now) for item in active],
             "history": [
                 {**item.to_dict(), **self._waited_before_start_status(item)}

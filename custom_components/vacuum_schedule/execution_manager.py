@@ -43,6 +43,7 @@ _STARTING_STATES = {
 _RETRYABLE_PRECOMMAND_WAIT_REASONS = frozenset({
     "vacuum_busy",
     "vacuum_unavailable",
+    "power_supply_unavailable",
     "clean_water_insufficient",
     "dirty_water_full",
     "detergent_unavailable",
@@ -365,7 +366,7 @@ class ExecutionManager:
             elif attempt.state is ExecutionAttemptState.CANCELLED:
                 changed |= zone.finish(
                     ZoneResult.FAILED,
-                    JobReason.USER_CANCELLED.value,
+                    attempt.failure_reason or JobReason.USER_CANCELLED.value,
                     attempt.completed_at or now,
                 )
             elif attempt.state is ExecutionAttemptState.FAILED:
@@ -382,6 +383,8 @@ class ExecutionManager:
         if not previous.terminal or previous.state is not ExecutionAttemptState.COMPLETED:
             return False
         if previous.final_pass or previous.metadata.get("next_pass_attempt_id"):
+            return False
+        if job.metadata.get("power_interrupted_at"):
             return False
         zones = [
             job.zone_runs[zone_id]
@@ -506,7 +509,7 @@ class ExecutionManager:
         # Recover the tiny crash window between completed emulated passes. Native
         # repetitions are one attempt and therefore have no successor command.
         for attempt in list(job.execution_attempts.values()):
-            if attempt.state is ExecutionAttemptState.COMPLETED and not attempt.final_pass:
+            if attempt.state is ExecutionAttemptState.COMPLETED and not attempt.final_pass and not job.metadata.get("power_interrupted_at"):
                 changed |= await self._async_start_next_pass(job, attempt, now)
         return changed
 
@@ -533,7 +536,7 @@ class ExecutionManager:
             # Synchronize terminal attempts too. This repairs a crash between
             # technical completion and logical zone persistence.
             changed |= self._sync_attempt_to_zones(job, attempt, now)
-            if attempt.state is ExecutionAttemptState.COMPLETED and not attempt.final_pass:
+            if attempt.state is ExecutionAttemptState.COMPLETED and not attempt.final_pass and not job.metadata.get("power_interrupted_at"):
                 changed |= await self._async_start_next_pass(job, attempt, now)
         return changed
 

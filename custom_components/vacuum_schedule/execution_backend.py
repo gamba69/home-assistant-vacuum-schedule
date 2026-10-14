@@ -663,6 +663,13 @@ class RealExecutionBackend:
             attempt.metadata["start_error"] = f"{type(err).__name__}: {err}"
             return
 
+        # Mains status can change during slow Roborock parameter preparation.
+        # Recheck after all preparation but BEFORE the command-intent barrier.
+        power_guard = getattr(self, "power_guard", None)
+        if callable(power_guard) and not power_guard():
+            await self._finish(attempt, ExecutionAttemptState.FAILED, now, "power_supply_unavailable")
+            return
+
         # Critical at-most-once barrier: persist that a command MAY be emitted
         # before making a physical call. Recovery from COMMAND_INTENT never
         # blindly sends the start command again.
@@ -670,6 +677,12 @@ class RealExecutionBackend:
         attempt.command_intent_at = now
         attempt.expected_start_confirm_at = instant_add(now, REAL_START_TIMEOUT)
         await self._persist_barrier()
+        if callable(power_guard) and not power_guard():
+            # The command was not emitted. Clear the intent so the ordinary
+            # recoverable pre-command WAIT path may safely handle this attempt.
+            attempt.command_intent_at = None
+            await self._finish(attempt, ExecutionAttemptState.FAILED, now, "power_supply_unavailable")
+            return
 
         try:
             await self.adapter.async_start_cleaning(attempt)
@@ -715,6 +728,12 @@ class RealExecutionBackend:
     async def _progress_cancel(
         self, attempt: ExecutionAttempt, observation: RobotExecutionObservation, now: datetime
     ) -> bool:
+        emergency = attempt.metadata.get("cancel_reason") == "power_supply_lost"
+        if emergency and attempt.cancel_requested_at is not None:
+            if instant_ge(now, instant_add(attempt.cancel_requested_at, timedelta(seconds=120))):
+                attempt.metadata["power_stop_unconfirmed"] = True
+                await self._finish(attempt, ExecutionAttemptState.FAILED, now, "power_supply_lost")
+                return True
         if observation.phase is RobotExecutionPhase.UNAVAILABLE:
             return False
         if observation.session_active or observation.phase in {
@@ -724,7 +743,9 @@ class RealExecutionBackend:
             RobotExecutionPhase.SERVICE_BLOCKED,
         }:
             return False
-        await self._finish(attempt, ExecutionAttemptState.CANCELLED, now, "user_cancelled")
+        reason = str(attempt.metadata.get("cancel_reason") or "user_cancelled")
+        state = ExecutionAttemptState.FAILED if reason == "power_supply_lost" else ExecutionAttemptState.CANCELLED
+        await self._finish(attempt, state, now, reason)
         if (
             observation.phase is not RobotExecutionPhase.RETURNING
             and not attempt.metadata.get("return_home_requested")

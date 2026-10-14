@@ -193,6 +193,13 @@ class PreflightEngine:
                     )
                 )
 
+        if policy.power_monitor_enabled:
+            mains = snapshot.values.get("power.supply")
+            if mains is None or not mains.effective_available:
+                blockers.append(self._input_block("power_supply_unknown", PreflightDecision.WAIT, mains) if mains is not None else self._block("power_supply_unknown", PreflightDecision.WAIT, "power.supply"))
+            elif mains.effective_value is not True:
+                blockers.append(self._input_block("power_supply_unavailable", PreflightDecision.WAIT, mains))
+
         vacuum_available = snapshot.values["vacuum.available"]
         activity = snapshot.values["vacuum.activity"]
         if not bool(vacuum_available.effective_value):
@@ -592,6 +599,9 @@ class PreflightEngine:
                 severity = "error" if binary_resource and item.source_entity_id else "warning"
                 problem = "binary_normal_state_missing" if binary_resource and item.source_entity_id else (item.note or "requires_attention")
                 issues.append(_issue(severity, key, problem, "invalid_configuration" if severity == "error" else "required_capability_missing", entity_id=item.source_entity_id))
+
+        if policy.power_monitor_enabled and not policy.power_entity_id:
+            issues.append(_issue("error", "power.supply", "power_source_missing", "invalid_configuration"))
 
         for zone in self.inputs.cleaning_zones:
             # Multiple logical Cleaning Zones may intentionally reference the

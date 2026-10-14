@@ -71,7 +71,7 @@ def classify_blocker(
     source = str(source_key or "")
     if room_id or normalized.startswith("zone_"):
         scope = BlockerScope.ZONE
-    elif normalized in {"global_disabled", "global_disabled_until", "invalid_configuration"}:
+    elif normalized in {"global_disabled", "global_disabled_until", "invalid_configuration", "power_supply_unavailable", "power_supply_unknown"}:
         scope = BlockerScope.SYSTEM
     elif normalized.startswith("vacuum_") or source.startswith(("vacuum.", "dock.", "mop.")):
         scope = BlockerScope.ROBOT

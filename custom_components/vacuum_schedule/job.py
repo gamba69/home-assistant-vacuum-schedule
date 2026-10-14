@@ -87,6 +87,7 @@ class JobReason(StrEnum):
     NO_ZONE_SUCCEEDED = "no_zone_succeeded"
     USER_SKIPPED = "user_skipped"
     USER_CANCELLED = "user_cancelled"
+    POWER_SUPPLY_LOST = "power_supply_lost"
     SCHEDULE_DISABLED_BY_USER = "schedule_disabled_by_user"
     MANUAL_RUN_FAILED = "manual_run_failed"
     MISSED_WHILE_OFFLINE = "missed_while_offline"

@@ -226,13 +226,15 @@ class ExternalExecutionTracker:
             requested_passes=1,
             repetition_mode=RepetitionMode.SINGLE,
         )
-        attempt.state = ExecutionAttemptState.COMPLETED
+        power_interrupted = bool(session.get("power_interrupted_at"))
+        attempt.state = ExecutionAttemptState.FAILED if power_interrupted else ExecutionAttemptState.COMPLETED
         attempt.requested_at = None
         attempt.start_confirmed_at = start_at
         attempt.completed_at = finished_at
         attempt.last_observed_at = _parse_dt(rows[-1].get("observed_at")) if rows else finished_at
         attempt.metadata = {
             "external_execution": True,
+            "power_interrupted_at": session.get("power_interrupted_at"),
             "adapter_vendor": session.get("vendor") or "generic",
             "statistics_observations": rows,
             "start_observation": rows[0] if rows else {},
@@ -243,10 +245,16 @@ class ExternalExecutionTracker:
         completion_evidence = any(item.get("last_clean_end") for item in rows)
         result = (
             JobResult.FAILED
-            if bool(session.get("saw_error")) and not completion_evidence
+            if power_interrupted or (bool(session.get("saw_error")) and not completion_evidence)
             else JobResult.SUCCESS
         )
-        reason = JobReason.EXECUTION_FAILED.value if result is JobResult.FAILED else JobReason.EXECUTION_SUCCESS.value
+        reason = (
+            JobReason.POWER_SUPPLY_LOST.value if power_interrupted else
+            JobReason.EXECUTION_FAILED.value if result is JobResult.FAILED
+            else JobReason.EXECUTION_SUCCESS.value
+        )
+        if power_interrupted:
+            attempt.failure_reason = reason
         job = JobInstance(
             job_id=job_id,
             occurrence_id=f"external:{session.get('session_id') or uuid4().hex}",
@@ -276,6 +284,7 @@ class ExternalExecutionTracker:
             metadata={
                 "external_execution": {
                     "session_id": session.get("session_id"),
+                    "power_interrupted_at": session.get("power_interrupted_at"),
                     "detected_at": session.get("detected_at"),
                     "task_kind": task_kind,
                     "targets_resolved": False,
@@ -287,6 +296,28 @@ class ExternalExecutionTracker:
             },
         )
         return job
+
+    def mark_power_interruption(self, now: datetime) -> bool:
+        """Preserve an emergency reason for an external run, including new ones."""
+        if self._session is None:
+            observation = self.adapter.observe(now)
+            if not (_cleaning_evidence(observation) or (
+                observation.session_active and observation.phase in {
+                    RobotExecutionPhase.PAUSED,
+                    RobotExecutionPhase.SERVICE,
+                    RobotExecutionPhase.SERVICE_BLOCKED,
+                }
+            )):
+                return False
+            self._start_session(observation, now)
+        if self._session.get("power_interrupted_at"):
+            return False
+        self._session["power_interrupted_at"] = now.isoformat()
+        return True
+
+    async def async_save_pending(self) -> None:
+        """Persist the active external session after recording an emergency."""
+        await self._async_save()
 
     async def async_observe(
         self,

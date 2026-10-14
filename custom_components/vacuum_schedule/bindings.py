@@ -151,6 +151,9 @@ class PreflightPolicy:
     occupancy_clear_delay_seconds: int = 0
     access_stable_delay_seconds: int = 0
     forecasts: Mapping[str, Any] = field(default_factory=dict)
+    power_monitor_enabled: bool = False
+    power_entity_id: str | None = None
+    power_present_state: str = "on"
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any] | None) -> "PreflightPolicy":
@@ -190,6 +193,10 @@ class PreflightPolicy:
             occupancy_clear_delay_seconds=max(0, _int("occupancy_clear_delay_seconds", 0)),
             access_stable_delay_seconds=max(0, _int("access_stable_delay_seconds", 0)),
             forecasts=forecast_policies_from_dict(raw.get("forecasts")),
+            power_monitor_enabled=raw.get("power_monitor_enabled") is True,
+            power_entity_id=str(raw["power_entity_id"]).strip() if raw.get("power_entity_id") else None,
+            power_present_state=str(raw.get("power_present_state", "on")).lower()
+            if str(raw.get("power_present_state", "on")).lower() in {"on", "off"} else "on",
         )
 
     @property
@@ -210,6 +217,9 @@ class PreflightPolicy:
             "occupancy_clear_delay_seconds": self.occupancy_clear_delay_seconds,
             "access_stable_delay_seconds": self.access_stable_delay_seconds,
             "forecasts": forecast_policies_to_dict(self.forecasts),
+            "power_monitor_enabled": self.power_monitor_enabled,
+            "power_entity_id": self.power_entity_id,
+            "power_present_state": self.power_present_state,
         }
 
 

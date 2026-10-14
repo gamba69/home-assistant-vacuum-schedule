@@ -14,6 +14,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .bindings import BindingMode, CapabilityBinding, PreflightPolicy, bindings_from_options
+from .power_supply import normalize_power_supply
 from .const import CONF_CAPABILITY_BINDINGS, CONF_PREFLIGHT_POLICY, CONF_CLEANING_ZONES
 from .models import NormalizedVacuumState, VacuumSnapshot
 from .cleaning_zones import CleaningZone, aggregate_access_paths, condition_matches, cleaning_zones_from_options, effective_zone_delay
@@ -198,6 +199,8 @@ class InputProvider:
             ):
                 values[key] = self._normalized_bound_input(key, bindings[key], vacuum, policy)
 
+            values["power.supply"] = self.power_input(allow_test_overrides=allow_test_overrides)
+
             configured_zones = self.cleaning_zones
             valid_zone_ids = {zone.zone_id for zone in configured_zones}
             self._zone_stable_since = {
@@ -300,6 +303,30 @@ class InputProvider:
         if zone.robot_target_id not in ids:
             return False, "segment_not_found"
         return True, None
+
+    def power_input(self, *, allow_test_overrides: bool = False) -> NormalizedInput:
+        """Normalize explicit mains telemetry; absent/unknown never means powered."""
+        policy = self.policy
+        if not policy.power_monitor_enabled:
+            return self._finalize(
+                "power.supply", True, live_available=True,
+                binding_mode="disabled", status="disabled", note="monitor_disabled",
+            )
+        entity_id = policy.power_entity_id
+        raw, available = self._read_entity(entity_id, None) if entity_id else (None, False)
+        normalized = normalize_power_supply(raw, available, policy.power_present_state)
+        # Physical emergency decisions must never use simulation overrides.
+        previous = self._allow_test_overrides
+        self._allow_test_overrides = bool(allow_test_overrides)
+        try:
+            return self._finalize(
+                "power.supply", normalized, live_available=normalized is not None,
+                source_entity_id=entity_id, raw_value=raw, binding_mode="manual",
+                status="ready" if normalized is not None else "requires_attention",
+                note=None if normalized is not None else "power_sensor_unknown",
+            )
+        finally:
+            self._allow_test_overrides = previous
 
     def _normalized_bound_input(
         self,
