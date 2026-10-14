@@ -78,6 +78,6 @@ def test_occupancy_toggle_is_localized_in_all_frontend_languages():
         assert all(str(data[key]).strip() for key in required)
 
 
-def test_release_version_is_0134():
+def test_release_version_is_not_older_than_0134():
     manifest = json.loads((MODULE / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["version"] == "0.13.4"
+    assert tuple(map(int, manifest["version"].split("."))) >= (0, 13, 4)

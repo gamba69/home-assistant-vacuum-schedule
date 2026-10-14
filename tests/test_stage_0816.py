@@ -12,9 +12,10 @@ PANEL = MODULE / "frontend" / "panel.js"
 def test_current_mode_value_has_no_duplicate_mode_icon():
     panel = PANEL.read_text(encoding="utf-8")
     status = panel[panel.index("  _statusHtml() {"):panel.index("  _notificationPresetPolicy(preset) {")]
-    card = status[status.index('class="summary-card summary-card-mode"'):]
-    card = card[:card.index('</div>\n        <div class="summary-card"><span>${this._tr("panel.active_jobs")}</span>')]
-    value = card[card.index('class="summary-mode-value'):card.index('class="mini-actions summary-actions summary-mode-actions"')]
+    value = status[
+        status.index('class="summary-mode-value'):
+        status.index('class="mini-actions summary-actions summary-mode-actions"')
+    ]
     assert '${this._mdi(dryRunMode?"flask-outline":"robot-vacuum")}' not in value
     assert '<b>${this._escape(executionModeText)}</b>' in value
 

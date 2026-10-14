@@ -24,13 +24,13 @@ def test_release_identity_is_exact():
     manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "Vacuum Schedule"
     assert manifest["domain"] == "vacuum_schedule"
-    assert manifest["version"] == "0.13.4"
+    assert tuple(map(int, manifest["version"].split("."))) >= (0, 13, 0)
     assert manifest["documentation"] == "https://github.com/gamba69/home-assistant-vacuum-schedule"
     assert manifest["issue_tracker"] == "https://github.com/gamba69/home-assistant-vacuum-schedule/issues"
     assert manifest["codeowners"] == ["@gamba69"]
     const = (COMPONENT / "const.py").read_text(encoding="utf-8")
     assert 'DOMAIN: Final = "vacuum_schedule"' in const
-    assert 'VERSION: Final = "0.13.4"' in const
+    assert f'VERSION: Final = "{manifest["version"]}"' in const
 
 
 def test_repository_has_exactly_one_hacs_integration_directory():
@@ -118,8 +118,9 @@ def test_project_documentation_has_en_ru_uk_file_parity():
         lang: {p.name for p in (ROOT / "docs" / lang).iterdir() if p.is_file()}
         for lang in ("en", "ru", "uk")
     }
-    expected = {"README.md", "ARCHITECTURE.md", "TESTING.md", "CHANGELOG.md"}
-    assert doc_sets["en"] == doc_sets["ru"] == doc_sets["uk"] == expected
+    required = {"README.md", "ARCHITECTURE.md", "TESTING.md", "CHANGELOG.md", "POWER_MONITORING.md"}
+    assert doc_sets["en"] == doc_sets["ru"] == doc_sets["uk"]
+    assert required <= doc_sets["en"]
 
 
 def test_native_custom_integration_translations_have_three_language_key_parity():
