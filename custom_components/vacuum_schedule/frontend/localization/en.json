@@ -869,6 +869,7 @@
   "panel.execution_mode_may_start_immediately": "At least one regenerated job is already due and may start physical execution immediately if authoritative pre-flight passes.",
   "panel.execution_mode_regeneration_warning": "{regenerated} safe not-yet-started jobs will be regenerated in the new mode. {preserved} started or partially executed jobs will keep their current mode.",
   "panel.execution_real": "Real execution",
+  "panel.execution_real_short": "Real",
   "panel.execution_report_help": "What was physically requested from the robot, without the internal lifecycle trace.",
   "panel.execution_results": "Execution results",
   "panel.execution_settings_saved": "Execution settings saved",

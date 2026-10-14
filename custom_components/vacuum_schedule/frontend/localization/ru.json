@@ -869,6 +869,7 @@
   "panel.execution_mode_may_start_immediately": "Как минимум одно пересозданное задание уже должно выполняться и может сразу запустить физическую уборку, если authoritative pre-flight пройдёт успешно.",
   "panel.execution_mode_regeneration_warning": "Безопасно не начатых заданий будет пересоздано в новом режиме: {regenerated}. Уже начатых или частично выполненных заданий сохранят текущий режим: {preserved}.",
   "panel.execution_real": "Реальное выполнение",
+  "panel.execution_real_short": "Реальное",
   "panel.execution_report_help": "Что физически было отправлено роботу — без внутреннего lifecycle trace.",
   "panel.execution_results": "Результаты выполнения",
   "panel.execution_settings_saved": "Настройки выполнения сохранены",

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.1
+
+- Refined the status dashboard: compact execution-mode label, five-card desktop layout when power monitoring is enabled, and color-coded power availability (green/red/neutral).
+- Updated release metadata, frontend component identity, localization cache version, and release regression checks to 0.14.1; retained the 0.14.0 component alias.
+
+## 0.14.0
+
+- Added optional mains-power monitoring. Pending jobs wait for power; a confirmed outage interrupts scheduler-owned and external vacuum cleanings and requests a best-effort return to base.
+- Added power monitoring settings, status reporting, tests and EN/RU/UK documentation.
+
 ## 0.13.4
 
 - Added a per-occurrence occupancy override for waiting jobs: **Ignore occupancy** removes only current `zone_busy` blockers and leaves the job in the normal scheduler/arbiter pipeline.

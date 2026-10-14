@@ -10,8 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "custom_components" / "vacuum_schedule"
-EXPECTED_VERSION = "0.14.0"
-EXPECTED_COMPONENT = "vacuum-schedule-panel-0140"
+EXPECTED_VERSION = "0.14.1"
+EXPECTED_COMPONENT = "vacuum-schedule-panel-0141"
 
 
 def test_release_metadata_is_consistent():
@@ -30,6 +30,7 @@ def test_release_metadata_is_consistent():
 
 def test_previous_frontend_identity_remains_a_cache_compatibility_alias():
     panel = (MODULE / "frontend" / "panel.js").read_text(encoding="utf-8")
+    assert '"vacuum-schedule-panel-0140"' in panel
     assert '"vacuum-schedule-panel-01256"' in panel
     assert '"vacuum-schedule-panel-01255"' in panel
     assert '"vacuum-schedule-panel-01254"' in panel

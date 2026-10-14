@@ -869,6 +869,7 @@
   "panel.execution_mode_may_start_immediately": "Щонайменше одне безпечно пересоздане завдання вже має виконуватися й може одразу запустити фізичне прибирання, якщо authoritative pre-flight пройде успішно.",
   "panel.execution_mode_regeneration_warning": "Безпечно не розпочатих завдань буде перестворено у новому режимі: {regenerated}. Вже розпочатих або частково виконаних завдань збережуть поточний режим: {preserved}.",
   "panel.execution_real": "Реальне виконання",
+  "panel.execution_real_short": "Реальне",
   "panel.execution_report_help": "Що фізично було надіслано роботу — без внутрішнього lifecycle trace.",
   "panel.execution_results": "Результати виконання",
   "panel.execution_settings_saved": "Налаштування виконання збережені",
